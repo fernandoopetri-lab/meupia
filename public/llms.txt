@@ -1,0 +1,3 @@
+## Pages
+- [Entrar | Meu Pila](/login): Acesse sua conta no Meu Pila e gerencie suas finanças com facilidade.
+- [Meu Pila Rural - Gestão Simples para o Agro](/pagerural): Controle financeiro e produtivo para fazendas. Lavouras, Pecuária e Fluxo de Caixa em um só lugar.

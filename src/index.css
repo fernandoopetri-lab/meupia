@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+  --background: 220 20% 97%;
+  /* #F7F9FB */
+  --foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --primary: 96 63% 49%;
+  /* #2CB67D - Main Green */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 215 20.2% 65.1%;
+  --radius: 0.75rem;
+}
+
+body {
+  @apply bg-background text-slate-700;
+  font-family: 'Poppins', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+/* Base component styles */
+.chart-container {
+  @apply bg-white p-6 rounded-xl shadow-sm border border-slate-200/80;
+}
+
+.wallet-card {
+  @apply bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-md hover:border-slate-300;
+}
+
+.input-field {
+  @apply flex h-11 w-full rounded-xl border border-input bg-transparent pl-4 pr-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg h-11 px-6 py-3;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 shadow-sm hover:shadow-md h-11 px-6 py-3;
+}
+
+.expense-item {
+  @apply bg-white p-4 rounded-xl border border-slate-100/80 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-200;
+}
+
+/* Landing Page Specific */
+.btn-primary-green {
+  @apply bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:from-green-700 hover:to-green-800 transform hover:scale-105 hover:shadow-xl shadow-lg;
+}
+
+.btn-outline-green {
+  @apply bg-transparent text-primary font-semibold px-8 py-4 rounded-xl transition-all duration-300 border-2 border-primary hover:bg-green-50 hover:border-green-600;
+}
+
+.section-title {
+  @apply text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 text-center bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent;
+}
+
+.section-subtitle {
+  @apply text-xl text-slate-600 max-w-3xl mx-auto text-center leading-relaxed;
+}
+
+.font-title {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Auth Screen Input Styles */
+.input-field-landing {
+  @apply h-12 w-full rounded-xl border border-input bg-transparent py-3 pl-12 pr-12 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all;
+  color: rgba(51, 65, 85, 1);
+  font-size: 16px;
+}
+
+.btn-primary-landing {
+  @apply inline-flex items-center justify-center rounded-xl text-base font-semibold text-white ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl hover:scale-105 h-12 px-6;
+  background: linear-gradient(to right, rgb(22, 163, 74), rgb(21, 128, 61));
+}
+
+.btn-primary-landing:hover {
+  background: linear-gradient(to right, rgb(21, 128, 61), rgb(20, 83, 45));
+}
+
+/* Glassmorphism effect */
+.glass-effect {
+  @apply backdrop-blur-xl bg-white/80 border border-white/20;
+}
+
+/* Gradient backgrounds */
+.gradient-overlay {
+  background: linear-gradient(135deg, rgba(16, 42, 18, 0.95) 0%, rgba(34, 139, 34, 0.85) 100%);
+}
