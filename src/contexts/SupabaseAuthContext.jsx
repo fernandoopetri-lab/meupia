@@ -104,12 +104,17 @@ export const AuthProvider = ({ children }) => {
         { maxRetries: 2, context: { functionName: 'signIn' } }
       );
       if (error) throw error;
+      // Atualiza o estado local imediatamente para evitar depender
+      // apenas do evento assíncrono onAuthStateChange para redirecionar.
+      if (data?.session) {
+        handleSession(data.session);
+      }
       return { data, error: null };
     } catch (error) {
       handleSupabaseError(error, { functionName: 'signIn' }, true);
       return { data: null, error };
     }
-  }, [retryFetch]);
+  }, [handleSession, retryFetch]);
 
   const value = useMemo(() => ({
     user, session, loading, error, signUp, signIn, signOut

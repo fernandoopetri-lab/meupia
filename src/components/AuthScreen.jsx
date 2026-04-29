@@ -9,7 +9,7 @@ import { formatCPF, formatWhatsApp, removeMask, validateCPF, validateWhatsApp } 
 import { createDefaultUserData } from '@/utils/createDefaultUserData';
 import { checkCpfExists } from '@/utils/cpfValidation';
 
-const AuthScreen = () => {
+const AuthScreen = ({ onAuthSuccess }) => {
   const { signIn, signUp, checkAccessStatus } = useAuth();
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
@@ -121,6 +121,9 @@ const AuthScreen = () => {
         toast({ title: "Sucesso!", description: "Bem-vindo de volta!" });
         if (data?.user?.id) {
             checkAccessStatus(data.user.id);
+        }
+        if (typeof onAuthSuccess === 'function') {
+          onAuthSuccess();
         }
 
       } else {

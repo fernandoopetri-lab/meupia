@@ -56,6 +56,12 @@ function AppContent() {
   const showExpirationModal = isTimedOut || authError;
 
   useEffect(() => {
+    if (user && showAuth) {
+      setShowAuth(false);
+    }
+  }, [user, showAuth]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const fetchProfile = async () => {
@@ -220,7 +226,9 @@ function AppContent() {
         <AnimatePresence>
           {showAuth && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowAuth(false)}>
-              <div onClick={(e) => e.stopPropagation()}><AuthScreen /></div>
+              <div onClick={(e) => e.stopPropagation()}>
+                <AuthScreen onAuthSuccess={() => setShowAuth(false)} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

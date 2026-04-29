@@ -10,8 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getDefaultPlan } from '@/utils/planMigration';
-import { removeMask } from '@/utils/formatters/maskUtils';
+import { removeMask, formatCPF, formatWhatsApp } from '@/utils/formatters/maskUtils';
 import { checkCpfExists } from '@/utils/validators/cpfValidation';
+import { supabase } from '@/lib/customSupabaseClient';
+import { createDefaultUserData } from '@/utils/createDefaultUserData';
 
 const benefits = [
   'Registre gastos pelo WhatsApp',
@@ -35,7 +37,12 @@ const SignUpPage = () => {
     if (user) navigate('/', { replace: true });
   }, [user, navigate]);
 
-  const handleChange = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
+  const handleChange = (field) => (e) => {
+    let value = e.target.value;
+    if (field === 'cpf') value = formatCPF(value);
+    if (field === 'phone') value = formatWhatsApp(value);
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,11 +65,15 @@ const SignUpPage = () => {
         }
       }
       const defaultPlan = await getDefaultPlan();
-      const { error: authError } = await signUp(formData.email, formData.password, {
+      const cleanCPF = formData.cpf ? removeMask(formData.cpf) : '';
+      const cleanPhone = formData.phone ? removeMask(formData.phone) : '';
+      
+      const { data, error: authError } = await signUp(formData.email, formData.password, {
         data: {
           name: formData.name,
-          cpf: formData.cpf ? removeMask(formData.cpf) : '',
-          phone: formData.phone ? removeMask(formData.phone) : '',
+          cpf: cleanCPF,
+          phone: cleanPhone,
+          telefone: cleanPhone,
           initial_plan_id: defaultPlan?.id,
           account_type: 'pessoal',
         },
@@ -75,6 +86,53 @@ const SignUpPage = () => {
         }
         return;
       }
+      
+      if (data?.user) {
+        try {
+            const trialEndDate = new Date();
+            trialEndDate.setDate(trialEndDate.getDate() + 30);
+            const trialEndDateISO = trialEndDate.toISOString();
+
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: data.user.id,
+                name: formData.name,
+                cpf: cleanCPF,
+                phone: cleanPhone,
+                account_type: 'pessoal',
+                plan_status: 'trial',
+                trial_end_date: trialEndDateISO,
+                plan_expires_at: trialEndDateISO
+              }, { onConflict: 'id' });
+              
+            if (profileError) console.error("Profile creation error:", profileError);
+
+            await createDefaultUserData(data.user.id, supabase, defaultPlan?.plan_type || 'PESSOAL', {
+               name: formData.name,
+               phone: cleanPhone,
+               cpf: cleanCPF
+            });
+
+            supabase.functions.invoke('create-asaas-customer', {
+              body: {
+                name: formData.name, email: formData.email, user_id: data.user.id,
+                cpfCnpj: cleanCPF, mobilePhone: cleanPhone, phone: cleanPhone
+              }
+            }).catch(err => console.error("Asaas creation edge function error:", err));
+
+            supabase.functions.invoke('dispatch-user-webhook', {
+              body: {
+                userId: data.user.id, email: formData.email, name: formData.name,
+                phone: cleanPhone, whatsapp: cleanPhone, cpf: cleanCPF,
+                plan: defaultPlan?.name || 'Trial', trial_ends: trialEndDateISO
+              }
+            }).catch(err => console.error("Webhook dispatch edge function error:", err));
+        } catch (postSignupErr) {
+            console.error("Error during post-signup operations:", postSignupErr);
+        }
+      }
+
       toast({ title: 'Conta criada!', description: 'Verifique seu e-mail para confirmar o cadastro.', duration: 5000 });
       navigate('/');
     } catch (err) {
@@ -205,6 +263,16 @@ const SignUpPage = () => {
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
                       <Input id="phone" type="tel" placeholder="(00) 00000-0000" value={formData.phone} onChange={handleChange('phone')}
                         className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-emerald-500" />
+                    </div>
+                  </div>
+
+                  {/* CPF */}
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf" className="text-white/80">CPF</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                      <Input id="cpf" type="text" placeholder="000.000.000-00" value={formData.cpf} onChange={handleChange('cpf')}
+                        className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-emerald-500" required />
                     </div>
                   </div>
 

@@ -64,7 +64,7 @@ export function TestimonialsSection() {
     <section className="py-24 lg:py-32 relative" ref={ref}>
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
 
-      <div className="relative mx-auto max-w-7xl px-6">
+      <div className="relative mx-auto max-w-7xl px-6 hidden">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}

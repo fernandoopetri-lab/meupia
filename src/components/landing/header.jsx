@@ -1,9 +1,10 @@
-;
-
 import { motion } from "framer-motion";
 import { LogIn, Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+
+const MotionHeader = motion.header;
 
 const navItems = [
   { label: "Como funciona", href: "#como-funciona" },
@@ -89,10 +90,11 @@ function LogoMark({ className = "" }) {
 }
 
 export function Header({ onAuthClick }) {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <motion.header
+    <MotionHeader
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -135,7 +137,7 @@ export function Header({ onAuthClick }) {
             </button>
             <Button
               size="sm"
-              onClick={onAuthClick}
+              onClick={() => navigate("/create")}
               className="h-10 rounded-full bg-primary px-5 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
             >
               <WhatsAppIcon />
@@ -202,6 +204,6 @@ export function Header({ onAuthClick }) {
           </motion.div>
         )}
       </div>
-    </motion.header>
+    </MotionHeader>
   );
 }

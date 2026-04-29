@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, MessageCircle, FileText } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -10,9 +11,10 @@ import { formatCPF, formatWhatsApp, removeMask, validateCPF, validateWhatsApp } 
 import { checkCpfExists } from '@/utils/cpfValidation';
 import { createDefaultUserData } from '@/utils/createDefaultUserData';
 
-const AuthScreen = () => {
+const AuthScreen = ({ onAuthSuccess }) => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -83,6 +85,10 @@ const AuthScreen = () => {
         const { data, error } = await signIn(formData.email, formData.password);
         if (error) throw error;
         toast({ title: "Sucesso!", description: "Bem-vindo de volta!" });
+        if (typeof onAuthSuccess === 'function') {
+          onAuthSuccess();
+        }
+        navigate('/', { replace: true });
       } else {
         const newErrors = {};
         if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "As senhas não coincidem";
