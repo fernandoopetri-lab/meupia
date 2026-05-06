@@ -678,45 +678,42 @@ const Dashboard = ({
     const Icon = item.icon;
     const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.id === activeTab));
     const isExactActive = activeTab === item.id;
-    const baseClasses = `w-full flex items-center space-x-3 rounded-lg transition-all duration-200`;
-    const textClasses = `font-medium transition-all ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'}`;
-    const padding = isSubItem ? 'pl-11 pr-3 py-2' : 'px-3 py-2.5';
-    const hoverBg = isSubItem ? 'hover:bg-[#243d34]' : 'hover:bg-[#243d34]';
+    
+    const baseClasses = `w-full flex items-center space-x-3 rounded-xl transition-all duration-300 group relative overflow-hidden`;
+    const padding = isSubItem ? 'pl-11 pr-3 py-2' : 'px-4 py-3';
+    
+    // Modern colors and effects
+    const activeBg = isExactActive ? 'bg-lime-500/10 shadow-[inset_0_0_15px_rgba(132,204,22,0.1)]' : 'hover:bg-white/5';
+    const textColors = isExactActive ? 'text-lime-400 font-semibold' : 'text-slate-400 group-hover:text-white';
+    const iconColors = isExactActive ? 'text-lime-400' : 'text-slate-500 group-hover:text-slate-300';
 
     if (item.subItems) {
       return (
-        <div>
+        <div className="mb-1">
           <button
             onClick={() => toggleSubmenu(item.id)}
-            className={`${baseClasses} ${padding} ${hoverBg} group justify-between`}
+            className={`${baseClasses} ${padding} hover:bg-white/5 justify-between`}
           >
             <div className="flex items-center space-x-3">
-              <Icon className={textClasses} size={20} />
-              <span className={textClasses}>{item.label}</span>
+              <Icon className={`${isActive ? 'text-lime-400' : 'text-slate-500'} transition-colors duration-300`} size={20} />
+              <span className={`${isActive ? 'text-white font-semibold' : 'text-slate-400 group-hover:text-white'} transition-colors duration-300`}>
+                {item.label}
+              </span>
             </div>
             <ChevronDown
-              className={`${textClasses} transform transition-transform ${openSubmenus[item.id] ? 'rotate-180' : ''}`}
+              className={`text-slate-500 transition-transform duration-300 ${openSubmenus[item.id] ? 'rotate-180' : ''}`}
               size={16}
             />
           </button>
           <AnimatePresence>
             {openSubmenus[item.id] && (
               <motion.div
-                initial={{
-                  height: 0,
-                  opacity: 0
-                }}
-                animate={{
-                  height: 'auto',
-                  opacity: 1
-                }}
-                exit={{
-                  height: 0,
-                  opacity: 0
-                }}
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="pt-1 space-y-1">
+                <div className="pt-1 pb-1 space-y-1">
                   {item.subItems.map(subItem => (
                     <NavButton key={subItem.id} item={subItem} isSubItem={true} />
                   ))}
@@ -729,56 +726,64 @@ const Dashboard = ({
     }
 
     return (
-      <div className="relative">
+      <div className="relative mb-1">
         <button
           onClick={() => {
             setActiveTab(item.id);
             setIsMobileMenuOpen(false);
             setSelectedPropertyId(null);
           }}
-          className={`${baseClasses} ${padding} ${hoverBg} group`}
+          className={`${baseClasses} ${padding} ${activeBg}`}
         >
-          <Icon className={textClasses} size={20} />
-          <span className={textClasses}>{item.label}</span>
+          <Icon className={`${iconColors} transition-colors duration-300`} size={20} />
+          <span className={`${textColors} transition-colors duration-300`}>{item.label}</span>
+          
+          {isExactActive && (
+            <motion.div
+              layoutId="active-indicator"
+              className="absolute left-0 w-1 h-6 bg-lime-400 rounded-r-full"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
         </button>
-        {isExactActive && (
-          <motion.div
-            layoutId="active-nav"
-            className="absolute -left-2 top-0 bottom-0 w-1 bg-lime-400 rounded-r-full"
-          />
-        )}
       </div>
     );
   };
 
   const SidebarContent = () => (
-    <div className="p-4 flex flex-col h-full bg-[#1A2E27]">
-      <div className="flex items-center space-x-3 mb-8">
-        <div className="w-12 h-12 flex items-center justify-center">
-          <img
-            src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png"
-            alt="Meu Pila Logo"
-            className="object-contain w-full h-full"
-          />
+    <div className="flex flex-col h-full bg-[#0D1814] text-white border-r border-white/5">
+      {/* Header / Logo Section */}
+      <div className="p-6 mb-2">
+        <div className="flex items-center space-x-3 px-2">
+          <div className="w-10 h-10 flex items-center justify-center bg-lime-500/10 rounded-xl p-1.5 border border-lime-500/20 shadow-lg shadow-lime-500/5">
+            <img
+              src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png"
+              alt="Meu Pila Logo"
+              className="object-contain w-full h-full"
+            />
+          </div>
+          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+            Meu Pila
+          </span>
         </div>
-        <span className="text-2xl font-bold font-['Poppins'] tracking-wide text-white">
-          Meu Pila
-        </span>
       </div>
 
-      <nav className="flex-grow space-y-2 overflow-y-auto">
-        <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-          Menu
-        </p>
+      {/* Navigation Section */}
+      <nav className="flex-grow px-3 space-y-1 overflow-y-auto custom-scrollbar">
+        <div className="px-4 mb-4">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+            Menu Principal
+          </p>
+        </div>
         {menuItems.map(item => (
           <NavButton key={item.id} item={item} />
         ))}
-      </nav>
-
-      <div className="mt-auto pt-6 border-t border-slate-700/50 space-y-2">
-        <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-          Geral
-        </p>
+        
+        <div className="pt-8 px-4 mb-4">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+            Preferências
+          </p>
+        </div>
         <NavButton
           item={{
             id: 'settings',
@@ -788,58 +793,58 @@ const Dashboard = ({
         />
         <button
           onClick={signOut}
-          className="w-full flex items-center space-x-3 px-3 py-2.5 text-slate-300 group hover:text-white hover:bg-[#243d34] rounded-lg transition-all duration-200"
+          className="w-full flex items-center space-x-3 px-4 py-3 text-slate-400 group hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-all duration-300"
         >
-          <LogOut size={20} />
-          <span className="font-medium">Sair</span>
+          <LogOut size={20} className="group-hover:text-red-400" />
+          <span className="font-medium">Sair da Conta</span>
         </button>
-        
-        <motion.button
-          onClick={() => {
-            if (profile?.is_admin) {
-              navigate('/admin');
-            }
-          }}
-          disabled={!profile?.is_admin}
-          whileHover={profile?.is_admin ? { scale: 1.02 } : {}}
-          whileTap={profile?.is_admin ? { scale: 0.98 } : {}}
-          className={`
-            w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 relative group
-            ${profile?.is_admin 
-              ? 'cursor-pointer hover:bg-[#243d34] hover:shadow-lg' 
-              : 'cursor-not-allowed opacity-50'
-            }
-          `}
-          title={profile?.is_admin ? 'Acessar Painel de Administração' : 'Acesso restrito a administradores'}
-        >
-          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 relative">
-            {profile?.is_admin ? (
-              <Crown className="w-5 h-5 text-yellow-400" />
-            ) : (
-              <User className="w-5 h-5 text-white" />
-            )}
-            {!profile?.is_admin && (
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-slate-600 rounded-full flex items-center justify-center">
-                <Lock className="w-3 h-3 text-slate-300" />
+      </nav>
+
+      {/* User Profile Mini Card Section */}
+      <div className="p-4 mt-auto">
+        <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center gap-3 group/profile transition-all hover:bg-white/[0.08]">
+          <div className="relative">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover/profile:scale-105 shadow-lg ${profile?.is_admin ? 'bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border border-yellow-500/30' : 'bg-gradient-to-br from-lime-500/20 to-lime-600/20 border border-lime-500/30'}`}>
+              {profile?.is_admin ? (
+                <Crown className="w-5 h-5 text-yellow-500" />
+              ) : (
+                <User className="w-5 h-5 text-lime-500" />
+              )}
+            </div>
+            {profile?.is_admin && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center border-2 border-[#0D1814]">
+                <ShieldCheck className="w-2.5 h-2.5 text-[#0D1814]" />
               </div>
             )}
           </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-semibold text-white truncate">
-              {profile?.name || user?.email}
+          
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-white truncate leading-tight">
+              {profile?.name || 'Usuário'}
             </p>
-            <p className="text-xs text-slate-400 truncate">
-              {profile?.is_admin ? 'Administrador' : user?.email}
+            <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider mt-0.5">
+              {profile?.is_admin ? 'Administrador' : (profile?.account_type === 'rural' ? 'Produtor Rural' : 'Plano Pessoal')}
             </p>
           </div>
-          
-          {profile?.is_admin && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-xl">
-              Clique para acessar o painel admin
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1 w-2 h-2 bg-slate-800 rotate-45"></div>
-            </div>
-          )}
-        </motion.button>
+
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
+            title="Ver Perfil"
+          >
+            <ArrowUpRight size={16} />
+          </button>
+        </div>
+
+        {profile?.is_admin && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-500 hover:to-yellow-600 text-white text-[11px] font-bold rounded-xl transition-all shadow-lg shadow-yellow-900/20"
+          >
+            <ShieldCheck size={14} />
+            PAINEL ADMIN
+          </button>
+        )}
       </div>
     </div>
   );
