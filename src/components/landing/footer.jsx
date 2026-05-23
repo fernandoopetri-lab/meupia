@@ -1,7 +1,6 @@
-;
-
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const footerLinks = {
   produto: [
@@ -31,14 +30,7 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <a href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">
-                  P
-                </span>
-              </div>
-              <span className="font-bold text-lg text-foreground">
-                MEU PILA
-              </span>
+              <Logo size="sm" />
             </a>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Seu assistente financeiro inteligente no WhatsApp.

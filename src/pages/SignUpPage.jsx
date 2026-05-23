@@ -11,6 +11,7 @@ import { createDefaultUserData } from '@/utils/createDefaultUserData';
 import { checkCpfExists } from '@/utils/cpfValidation';
 import SignUpForm from '@/components/SignUpForm';
 import SignUpImage from '@/components/SignUpImage';
+import Logo from '@/components/Logo';
 
 const EmbedScript = () => {
   useEffect(() => {
@@ -218,21 +219,10 @@ const SignUpPage = () => {
             </p>
 
             <div
-              className="flex flex-wrap items-center justify-center gap-2 mb-3 cursor-pointer text-center shrink-0"
+              className="flex items-center justify-center mb-3 cursor-pointer shrink-0"
               onClick={() => navigate('/')}
-              style={{ background: 'unset', backgroundColor: 'unset', backgroundImage: 'none' }}
             >
-              <img
-                src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png"
-                alt="Meu Pila"
-                className="h-8 w-8 md:h-9 md:w-9"
-              />
-              <span
-                className="text-xl md:text-2xl font-extrabold text-white border-0 border-transparent"
-                style={{ backgroundClip: 'unset', WebkitBackgroundClip: 'unset' }}
-              >
-                Meu Pila
-              </span>
+              <Logo theme="dark" size="lg" />
             </div>
 
             <div className="flex-1 flex flex-col justify-center min-h-0 max-w-md w-full mx-auto">

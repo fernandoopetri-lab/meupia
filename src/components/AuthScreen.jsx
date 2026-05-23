@@ -8,6 +8,7 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { formatCPF, formatWhatsApp, removeMask, validateCPF, validateWhatsApp } from '@/utils/maskUtils';
 import { createDefaultUserData } from '@/utils/createDefaultUserData';
 import { checkCpfExists } from '@/utils/cpfValidation';
+import Logo from '@/components/Logo';
 
 const AuthScreen = ({ onAuthSuccess }) => {
   const { signIn, signUp, checkAccessStatus } = useAuth();
@@ -268,9 +269,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
       className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 my-8"
     >
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center gap-3 mb-4">
-          <img src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png" alt="Meu Pila Logo" className="h-12 w-12" />
-          <span className="text-2xl font-bold text-slate-800">Meu Pila</span>
+        <div className="flex justify-center mb-4">
+          <Logo />
         </div>
         <h1 className="text-2xl font-bold text-slate-800">
           {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta grátis'}

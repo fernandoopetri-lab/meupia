@@ -20,6 +20,7 @@ import {
   Sparkles,
   Beef
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 export default function LandingPage({ onAuthClick }) {
   const navigate = useNavigate();
@@ -46,14 +47,7 @@ export default function LandingPage({ onAuthClick }) {
         className="absolute top-0 left-0 right-0 z-50 px-6 py-6 flex items-center justify-between"
       >
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-            <span className="text-white font-bold text-lg">$</span>
-          </div>
-          <span className="text-2xl font-serif font-bold text-white tracking-tight">
-            MEU PILA
-          </span>
-        </div>
+        <Logo theme="dark" size="lg" />
 
         {/* Botao de login */}
         <a href="/login" onClick={(e) => { e.preventDefault(); navigate("/login"); }}>

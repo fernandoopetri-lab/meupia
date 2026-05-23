@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, TrendingUp, Settings, LogOut, Menu, X, MapPin, GitCommit, ChevronDown, Baby, Milk, Beef, Syringe, Layers, ShoppingCart, DollarSign, Wheat, Beaker, Archive, Package, ArrowRightLeft, LayoutDashboard, BarChart3, Crown, User, AlertTriangle, Tags, TrendingDown, ArrowUpRight, ArrowDownRight, Lock, Clock, CircleDot as RepeatIcon } from 'lucide-react';
+import { 
+  Plus, LayoutDashboard, Wallet, TrendingUp, TrendingDown, Landmark, 
+  BarChart3, Settings, LogOut, Menu, X, ChevronRight, User, Bell, 
+  ChevronDown, Check, Info, Shield, HelpCircle, Smartphone, Map, 
+  Wheat, Beef, Droplets, Calendar, PlusCircle, Search, Tags as TagsIcon, MapPin, 
+  GitCommit, Beaker, Package, Archive, Baby, Milk, Layers, 
+  ShoppingCart, DollarSign, Syringe, ArrowRightLeft, 
+  CircleDot as RepeatIcon, ArrowUpRight, ArrowDownRight, 
+  Lock, Clock, AlertTriangle, Crown, ShieldCheck
+} from 'lucide-react';
+import Logo from '@/components/Logo';
+import { banks } from '@/data/banks';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -28,6 +39,16 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { checkExpirationWarning } from '@/utils/checkUserAccess';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchWithRetry } from '@/utils/supabaseQueryHelper';
+
+const parseWalletColor = (colorString) => {
+  try {
+    if (colorString && colorString.startsWith('{')) {
+      const parsed = JSON.parse(colorString);
+      return { hex: parsed.hex, bank: parsed.bank };
+    }
+  } catch (e) {}
+  return { hex: colorString, bank: null };
+};
 
 const Dashboard = ({
   user,
@@ -207,7 +228,7 @@ const Dashboard = ({
       {
         id: 'categories',
         label: 'Categorias',
-        icon: Tags
+        icon: TagsIcon
       },
       {
         id: 'wallets',
@@ -564,38 +585,89 @@ const Dashboard = ({
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 mb-6"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800">Saldo Acumulado</h3>
-              <p className="text-sm text-slate-500">Evolução nos últimos 6 meses</p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 flex flex-col overflow-hidden max-h-[330px] lg:col-span-1"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Suas Carteiras</h3>
+                <p className="text-sm text-slate-500">Saldos atuais</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setActiveTab('wallets')} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-8 px-2">Ver Todas</Button>
             </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={last6MonthsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
-              <YAxis stroke="#64748b" fontSize={12} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                formatter={(value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="saldo" 
-                stroke="#84cc16" 
-                strokeWidth={3}
-                dot={{ fill: '#84cc16', r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </motion.div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+              {wallets?.length > 0 ? (
+                wallets.map(wallet => {
+                  const { hex, bank } = parseWalletColor(wallet.color);
+                  const bankData = banks.find(b => b.id === bank);
+                  const color = hex || '#10b981';
+                  return (
+                    <div key={wallet.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-colors cursor-pointer group" onClick={() => setActiveTab('wallets')}>
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center relative shadow-inner group-hover:scale-105 transition-transform duration-300"
+                          style={{ backgroundColor: `${color}15` }}
+                        >
+                          {bankData?.logo ? (
+                            <img src={bankData.logo} alt={bankData.name} className="w-6 h-6 object-contain" />
+                          ) : (
+                            <Wallet className="w-5 h-5 animate-pulse" style={{ color }} />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-700 leading-tight truncate max-w-[120px]">{wallet.name}</p>
+                          <p className="text-[9px] text-slate-400 uppercase tracking-wider mt-0.5">{wallet.type === 'credit' ? 'Cartão de Crédito' : 'Padrão'}</p>
+                        </div>
+                      </div>
+                      <span className={`text-sm font-bold whitespace-nowrap ${wallet.balance >= 0 ? 'text-slate-800' : 'text-red-500'}`}>
+                        R$ {Number(wallet.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-slate-500 text-center py-4">Nenhuma carteira cadastrada.</p>
+              )}
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 lg:col-span-2"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Saldo Acumulado</h3>
+                <p className="text-sm text-slate-500">Evolução nos últimos 6 meses</p>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={last6MonthsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                  formatter={(value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="saldo" 
+                  stroke="#84cc16" 
+                  strokeWidth={3}
+                  dot={{ fill: '#84cc16', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
       </>
     );
   };
@@ -754,18 +826,7 @@ const Dashboard = ({
     <div className="flex flex-col h-full bg-[#0D1814] text-white border-r border-white/5">
       {/* Header / Logo Section */}
       <div className="p-6 mb-2">
-        <div className="flex items-center space-x-3 px-2">
-          <div className="w-10 h-10 flex items-center justify-center bg-lime-500/10 rounded-xl p-1.5 border border-lime-500/20 shadow-lg shadow-lime-500/5">
-            <img
-              src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png"
-              alt="Meu Pila Logo"
-              className="object-contain w-full h-full"
-            />
-          </div>
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-            Meu Pila
-          </span>
-        </div>
+        <Logo theme="dark" className="px-2" />
       </div>
 
       {/* Navigation Section */}
@@ -850,7 +911,7 @@ const Dashboard = ({
   );
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB]">
+    <div className="min-h-screen bg-slate-50/50">
       <TrialAlertModal
         isOpen={showTrialAlert}
         daysLeft={trialDaysLeft}
@@ -882,32 +943,34 @@ const Dashboard = ({
 
       <div className="flex">
         <aside
-          className={`fixed lg:relative inset-y-0 left-0 z-50 transform transition-transform duration-300 ${
-            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64`}
+          className={`fixed lg:relative inset-y-0 left-0 z-[60] transform transition-transform duration-300 ${
+            isMobileMenuOpen ? 'translate-x-0 shadow-2xl shadow-black/50' : '-translate-x-full lg:translate-x-0'
+          } w-72`}
         >
           <SidebarContent />
         </aside>
 
-        <main className="flex-1 min-h-screen">
-          <header className="hidden lg:flex justify-between items-center p-6 bg-white border-b border-slate-200">
+        <main className="flex-1 min-h-screen relative">
+          <header className="hidden lg:flex justify-between items-center h-24 px-10 bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40">
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
             >
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                 {menuItems.find(item => item.id === activeTab)?.label ||
                   menuItems.flatMap(item => item.subItems || []).find(sub => sub.id === activeTab)?.label ||
                   'Painel'}
               </h2>
-              <p className="text-slate-500">
-                Bem-vindo(a) de volta, {profile?.name || user.email}!
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
+                {profile?.account_type === 'rural' ? 'Gestão Rural Inteligente' : 'Gestão Financeira Pessoal'}
               </p>
             </motion.div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
               {expirationWarning && (
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border ${
-                      expirationWarning.daysLeft === 0 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'
+                  <div className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 border shadow-sm ${
+                      expirationWarning.daysLeft === 0 
+                        ? 'bg-red-50 text-red-600 border-red-100' 
+                        : 'bg-amber-50 text-amber-600 border-amber-100'
                   }`}>
                       <Clock className="w-4 h-4" />
                       <span>
@@ -915,19 +978,23 @@ const Dashboard = ({
                       </span>
                   </div>
               )}
+              
               {profile?.is_admin ? (
-                <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full flex items-center gap-2">
+                <div className="bg-yellow-50 border border-yellow-100 text-yellow-600 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2">
                   <Crown className="w-4 h-4" />
-                  <span>Acesso Admin</span>
+                  <span>Acesso Master</span>
                 </div>
               ) : (
                 profile?.plan_status === 'trial' && (
-                  <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm font-medium px-3 py-1 rounded-full flex items-center gap-2">
+                  <div className="bg-lime-50 border border-lime-100 text-lime-600 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    <span>Modo de Teste</span>
+                    <span>Modo Free Trial</span>
                   </div>
                 )
               )}
+              
+              <div className="w-px h-8 bg-slate-200/60 mx-2" />
+              
               <NotificationBell
                 user={user}
                 onNotificationClick={url => url && setActiveTab(url.replace('/', ''))}
@@ -935,7 +1002,7 @@ const Dashboard = ({
             </div>
           </header>
 
-          <div className="p-4 sm:p-6">
+          <div className={`p-6 lg:p-10 ${activeTab === 'transactions' ? '!pl-[30px]' : ''} max-w-[1600px] mx-auto`}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

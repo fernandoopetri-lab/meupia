@@ -126,38 +126,43 @@ const AnimalList = ({ user, onSelectAnimal, filterByLotId, onClearLotFilter }) =
               </Button>
           </div>
       )}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <Input 
-            placeholder="Buscar por brinco, raça, lote..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <div className="card-modern !p-3">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="relative w-full md:max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Input 
+              placeholder="Buscar por brinco, raça, lote..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-modern pl-12 border-transparent bg-slate-50 focus:bg-white h-12"
+            />
+          </div>
+          
+          <div className="flex gap-2 w-full md:w-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex-1 md:w-auto h-12 rounded-xl font-bold text-slate-600 border-slate-100 hover:bg-slate-50">
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  Filtrar Status
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 rounded-2xl shadow-xl border-slate-100 p-2">
+                <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest p-2">Status do Animal</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {statusOptions.map(status => (
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={statusFilter[status]}
+                    onCheckedChange={() => handleStatusFilterChange(status)}
+                    className="capitalize rounded-lg font-medium py-2"
+                  >
+                    {status}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="w-full md:w-auto">
-              <SlidersHorizontal className="w-4 h-4 mr-2" />
-              Filtrar Status
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Status do Animal</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {statusOptions.map(status => (
-              <DropdownMenuCheckboxItem
-                key={status}
-                checked={statusFilter[status]}
-                onCheckedChange={() => handleStatusFilterChange(status)}
-                className="capitalize"
-              >
-                {status}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {paginatedAnimals.length > 0 ? (
@@ -170,22 +175,33 @@ const AnimalList = ({ user, onSelectAnimal, filterByLotId, onClearLotFilter }) =
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => onSelectAnimal(animal.id)}
-                className="wallet-card group cursor-pointer"
+                className="card-modern group cursor-pointer hover:bg-slate-50/80 transition-all !p-5"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-100">
-                    <GitCommit className="w-6 h-6 text-green-600" />
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-lime-50 border border-lime-100 shadow-sm transition-transform group-hover:scale-110">
+                    <GitCommit className="w-7 h-7 text-lime-600" />
                   </div>
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full capitalize ${getStatusColor(animal.status)}`}>
+                  <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg ${getStatusColor(animal.status)}`}>
                     {animal.status}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 truncate">Brinco: {animal.ear_tag_id}</h3>
-                <p className="text-sm text-slate-500 capitalize">{animal.breed || 'Raça não definida'}</p>
-                <div className="mt-3 space-y-1 text-sm text-slate-600">
-                  <p><strong>Sexo:</strong> <span className="capitalize">{animal.sex || 'N/D'}</span></p>
-                  <p><strong>Lote:</strong> {animal.livestock_lots?.name || 'Sem lote'}</p>
-                  <p><strong>Propriedade:</strong> {animal.properties?.name || 'N/D'}</p>
+                
+                <h3 className="text-lg font-bold text-slate-800 truncate group-hover:text-lime-700 transition-colors">Brinco: {animal.ear_tag_id}</h3>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{animal.breed || 'Raça não definida'}</p>
+                
+                <div className="mt-6 pt-4 border-t border-slate-100 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-tighter">Sexo</span>
+                    <span className="font-bold text-slate-700 capitalize">{animal.sex || 'N/D'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-tighter">Lote</span>
+                    <span className="font-bold text-slate-700">{animal.livestock_lots?.name || 'Sem lote'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-400 uppercase tracking-tighter">Propriedade</span>
+                    <span className="font-bold text-slate-700 truncate max-w-[120px]">{animal.properties?.name || 'N/D'}</span>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -206,10 +222,12 @@ const AnimalList = ({ user, onSelectAnimal, filterByLotId, onClearLotFilter }) =
           </div>
         </>
       ) : (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 wallet-card">
-          <GitCommit className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-slate-600 mb-2">Nenhum animal encontrado</h3>
-          <p className="text-slate-500">Nenhum animal corresponde aos filtros selecionados ou você ainda não cadastrou animais.</p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-modern py-20 text-center">
+          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <GitCommit className="w-10 h-10 text-slate-200" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-2">Nenhum animal encontrado</h3>
+          <p className="text-slate-500 max-w-sm mx-auto">Tente ajustar seus filtros de busca ou status para encontrar o que procura.</p>
         </motion.div>
       )}
     </div>

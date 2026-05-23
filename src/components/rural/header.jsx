@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, Leaf } from "lucide-react"
+import { Menu, X } from "lucide-react"
+import Logo from "@/components/Logo"
 
 const navItems = [
   { label: "Início", href: "#inicio" },
@@ -41,14 +42,8 @@ export function RuralHeader({ onAuthClick }) {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6 }}
-                className="flex items-center gap-2"
               >
-                <div className="w-10 h-10 rounded-full bg-[#1a4d2e] flex items-center justify-center">
-                  <Leaf className="w-5 h-5 text-[#22c55e]" />
-                </div>
-                <span className={`text-xl font-bold ${isScrolled ? "text-[#1a4d2e]" : "text-white"}`}>
-                  Meu Pila
-                </span>
+                <Logo theme={isScrolled ? "light" : "dark"} />
               </motion.div>
             </a>
 
@@ -120,14 +115,9 @@ export function RuralHeader({ onAuthClick }) {
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-[#1a4d2e] flex items-center justify-center">
-                      <Leaf className="w-5 h-5 text-[#22c55e]" />
-                    </div>
-                    <span className="text-xl font-bold text-[#1a4d2e]">
-                      Meu Pila
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Logo theme="light" />
+                </div>
                   <button
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="p-2"

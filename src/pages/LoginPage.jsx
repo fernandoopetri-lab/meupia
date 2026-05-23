@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import LoginForm from '@/components/LoginForm';
 import LoginImage from '@/components/LoginImage';
+import Logo from '@/components/Logo';
 
 const LoginPage = () => {
   const { user } = useAuth();
@@ -29,15 +30,10 @@ const LoginPage = () => {
         <div className="w-full md:w-1/2 bg-emerald-900 min-h-screen flex flex-col p-6 md:p-12 relative overflow-y-auto">
           {/* Logo */}
           <div 
-            className="flex items-center gap-3 mb-8 md:mb-12 cursor-pointer"
+            className="mb-8 md:mb-12 cursor-pointer inline-block"
             onClick={() => navigate('/')}
           >
-            <img 
-              src="https://horizons-cdn.hostinger.com/860644ba-faa3-419e-8682-0050f10d2689/57e13ed333d106107e87390582543d59.png" 
-              alt="Meu Pila" 
-              className="h-10 w-10 md:h-12 md:w-12" 
-            />
-            <span className="text-xl md:text-2xl font-bold text-white">Meu Pila</span>
+            <Logo theme="dark" size="lg" />
           </div>
 
           {/* Form Container */}

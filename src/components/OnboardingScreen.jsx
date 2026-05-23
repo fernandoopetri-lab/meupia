@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, User, Users, Tractor, Loader2, ArrowRight } from 'lucide-react';
+import { Check, User, Users, Tractor, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -18,35 +18,34 @@ const OnboardingScreen = ({ onComplete }) => {
     {
       id: 'personal',
       title: 'Uso Pessoal',
-      description: 'Ideal para solteiros ou gestão individual. Controle seus gastos e receitas com simplicidade.',
+      description: 'Gestão individual simplificada para suas finanças do dia a dia.',
       icon: User,
       color: 'text-blue-500',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200'
+      bg: 'bg-blue-500/5',
+      border: 'border-blue-500/20'
     },
     {
       id: 'familiar',
       title: 'Uso Familiar',
-      description: 'Para casais ou famílias. Gerencie o orçamento da casa em conjunto.',
+      description: 'Orçamento compartilhado para casais e famílias modernas.',
       icon: Users,
       color: 'text-purple-500',
-      bg: 'bg-purple-50',
-      border: 'border-purple-200'
+      bg: 'bg-purple-500/5',
+      border: 'border-purple-500/20'
     },
     {
       id: 'rural',
       title: 'Produtor Rural',
-      description: 'Específico para gestão de propriedades rurais, safras, rebanho e maquinário.',
+      description: 'Gestão de alta performance para propriedades, safras e rebanho.',
       icon: Tractor,
-      color: 'text-green-500',
-      bg: 'bg-green-50',
-      border: 'border-green-200'
+      color: 'text-lime-500',
+      bg: 'bg-lime-500/5',
+      border: 'border-lime-500/20'
     }
   ];
 
   const createCategoriesRecursively = async (categories, parentId = null) => {
     for (const category of categories) {
-      // Check if category already exists to prevent duplicates
       const { data: existing } = await supabase
         .from('categories')
         .select('id')
@@ -56,7 +55,6 @@ const OnboardingScreen = ({ onComplete }) => {
         .maybeSingle();
 
       let categoryId;
-
       if (existing) {
         categoryId = existing.id;
       } else {
@@ -72,10 +70,7 @@ const OnboardingScreen = ({ onComplete }) => {
           .select()
           .single();
 
-        if (error) {
-          console.error(`Error creating category ${category.name}:`, error);
-          continue;
-        }
+        if (error) continue;
         if (data) categoryId = data.id;
       }
 
@@ -87,39 +82,28 @@ const OnboardingScreen = ({ onComplete }) => {
 
   const handleContinue = async () => {
     if (!selectedType) return;
-    
     setLoading(true);
     try {
-      // 1. Get configuration data
       const trialDays = await getTrialDurationDays();
-      
-      // Attempt to find a plan matching the selected type
       const plan = await getPlanByType(selectedType);
-
-      // 2. Setup categories
       const defaultCategories = getDefaultCategories(selectedType);
       await createCategoriesRecursively(defaultCategories);
       
-      // 3. Calculate trial end date
       const createdAt = new Date();
       const expiresAt = new Date(createdAt);
       expiresAt.setDate(createdAt.getDate() + trialDays);
       const expiresAtISO = expiresAt.toISOString();
 
-      // 4. Update profile with plan info
       const updatePayload = {
-        account_type: selectedType, // Keep for legacy
+        account_type: selectedType,
         plan_status: 'trial', 
         plan_expires_at: expiresAtISO,
         trial_end_date: expiresAtISO
       };
 
-      if (plan) {
-        updatePayload.current_plan_id = plan.id;
-      }
+      if (plan) updatePayload.current_plan_id = plan.id;
 
-      // Ensure profile exists before updating (upsert)
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .upsert({
             id: user.id,
@@ -130,16 +114,13 @@ const OnboardingScreen = ({ onComplete }) => {
         .single();
 
       if (error) throw error;
-      
-      // 5. Call parent callback
-      await onComplete(selectedType); // Pass legacy type for now
+      await onComplete(selectedType);
       
       toast({
         title: "Bem-vindo!",
         description: "Sua conta foi configurada com sucesso.",
       });
     } catch (error) {
-      console.error('Error during onboarding:', error);
       toast({
         title: "Erro",
         description: "Houve um problema ao configurar sua conta. Tente novamente.",
@@ -151,37 +132,51 @@ const OnboardingScreen = ({ onComplete }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 lg:p-10 font-sans">
+      <div className="max-w-5xl w-full bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row h-full max-h-[850px]">
         
-        {/* Left Panel - Image/Branding */}
-        <div className="w-full md:w-1/3 bg-slate-900 p-8 flex flex-col justify-between text-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80')] bg-cover bg-center"></div>
+        {/* Left Panel */}
+        <div className="w-full md:w-[40%] bg-slate-950 p-12 flex flex-col justify-between text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-lime-500/10 via-transparent to-blue-500/5 pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-lime-500/10 rounded-full blur-[100px] pointer-events-none" />
+          
           <div className="relative z-10">
-            <h1 className="text-2xl font-bold mb-2">Meu Pila</h1>
-            <p className="text-slate-400 text-sm">Gestão financeira inteligente</p>
+            <div className="mb-12">
+              <Logo theme="dark" size="lg" />
+            </div>
           </div>
-          <div className="relative z-10 mt-12 md:mt-0">
-            <h2 className="text-3xl font-bold leading-tight mb-4">
-              Vamos configurar sua conta
+
+          <div className="relative z-10">
+            <h2 className="text-4xl lg:text-5xl font-black leading-[1.1] mb-6 tracking-tight">
+              Sua nova jornada <span className="text-lime-400">financeira</span> começa aqui.
             </h2>
-            <p className="text-slate-300">
-              Escolha o perfil que melhor se adapta às suas necessidades para personalizarmos sua experiência.
+            <p className="text-slate-400 text-lg font-medium leading-relaxed">
+              Prepare-se para ter o controle total da sua vida ou do seu agronegócio com inteligência e simplicidade.
             </p>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-4 p-4 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 mt-12">
+             <div className="w-10 h-10 rounded-full bg-lime-500/20 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-lime-400" />
+             </div>
+             <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">Segurança Bancária de Ponta</p>
           </div>
         </div>
 
-        {/* Right Panel - Content */}
-        <div className="w-full md:w-2/3 p-8 md:p-12">
-          <div className="max-w-lg mx-auto">
-            <div className="flex items-center space-x-2 mb-8">
-              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white text-sm font-bold">1</span>
-              <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">Tipo de Conta</span>
+        {/* Right Panel */}
+        <div className="w-full md:w-[60%] p-10 lg:p-20 overflow-y-auto custom-scrollbar">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center gap-3 mb-10">
+              <div className="w-2 h-2 rounded-full bg-lime-500 animate-pulse" />
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Passo 01 / Configuração</span>
             </div>
 
-            <h3 className="text-2xl font-bold text-slate-800 mb-6">Qual é o seu objetivo principal?</h3>
+            <h3 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Personalize seu acesso</h3>
+            <p className="text-slate-500 font-medium mb-10 leading-relaxed">
+              Selecione o perfil que melhor representa sua realidade atual para que possamos otimizar suas ferramentas.
+            </p>
 
-            <div className="space-y-4 mb-8">
+            <div className="space-y-4 mb-12">
               {accountTypes.map((type) => {
                 const Icon = type.icon;
                 const isSelected = selectedType === type.id;
@@ -189,30 +184,32 @@ const OnboardingScreen = ({ onComplete }) => {
                 return (
                   <motion.div
                     key={type.id}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
+                    whileHover={{ x: 5, backgroundColor: 'rgba(248, 250, 252, 1)' }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedType(type.id)}
-                    className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`relative p-6 rounded-3xl border-2 cursor-pointer transition-all ${
                       isSelected 
-                        ? `${type.border} ${type.bg}` 
-                        : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                        ? 'border-lime-500 bg-lime-50/30' 
+                        : 'border-slate-100 bg-white'
                     }`}
                   >
-                    <div className="flex items-start">
-                      <div className={`p-3 rounded-lg ${isSelected ? 'bg-white' : 'bg-slate-100'} mr-4`}>
-                        <Icon className={`w-6 h-6 ${type.color}`} />
+                    <div className="flex items-center gap-5">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
+                        isSelected ? 'bg-lime-500 text-white shadow-lg shadow-lime-500/20' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        <Icon className="w-7 h-7" />
                       </div>
                       <div className="flex-grow">
-                        <h4 className={`font-semibold ${isSelected ? 'text-slate-800' : 'text-slate-700'}`}>
+                        <h4 className={`text-lg font-black tracking-tight ${isSelected ? 'text-slate-800' : 'text-slate-700'}`}>
                           {type.title}
                         </h4>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className={`text-sm font-medium leading-snug mt-0.5 ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
                           {type.description}
                         </p>
                       </div>
                       {isSelected && (
-                        <div className="absolute top-4 right-4">
-                          <div className={`w-6 h-6 rounded-full ${type.color.replace('text', 'bg')} flex items-center justify-center`}>
+                        <div className="flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-lime-500 flex items-center justify-center">
                             <Check className="w-4 h-4 text-white" />
                           </div>
                         </div>
@@ -223,24 +220,27 @@ const OnboardingScreen = ({ onComplete }) => {
               })}
             </div>
 
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleContinue} 
-                disabled={!selectedType || loading}
-                className="btn-primary px-8 py-6 text-lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Configurando...
-                  </>
-                ) : (
-                  <>
-                    Continuar <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </Button>
-            </div>
+            <Button 
+              onClick={handleContinue} 
+              disabled={!selectedType || loading}
+              className="btn-premium w-full py-8 text-lg group"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Configurando Sistema...
+                </>
+              ) : (
+                <>
+                  Finalizar Configuração
+                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
+            </Button>
+            
+            <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-8">
+              Você poderá alterar seu perfil a qualquer momento
+            </p>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion"
-import { Leaf, X } from "lucide-react"
+import { X } from "lucide-react"
 import { useState } from "react"
+import Logo from "@/components/Logo"
 
 const footerLinks = {
   "Links Rápidos": [
@@ -104,11 +105,8 @@ export function RuralFooter() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
             {/* Logo Column */}
             <div className="col-span-2 md:col-span-1">
-              <a href="/page-rural" className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[#22c55e]/20 flex items-center justify-center">
-                  <Leaf className="w-5 h-5 text-[#22c55e]" />
-                </div>
-                <span className="text-xl font-bold">Meu Pila</span>
+              <a href="/page-rural" className="mb-4 inline-block">
+                <Logo theme="dark" />
               </a>
               <p className="text-white/60 text-sm">
                 Controle financeiro simples, do campo à cidade.

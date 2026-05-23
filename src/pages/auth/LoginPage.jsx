@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import Logo from '@/components/Logo';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -64,11 +65,8 @@ const LoginPage = () => {
             transition={{ duration: 0.5 }}
             className="text-center mb-8"
           >
-            <Link to="/" className="inline-flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <span className="text-white font-bold text-lg">$</span>
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">MEU PILA</span>
+            <Link to="/" className="inline-block">
+              <Logo theme="dark" size="lg" />
             </Link>
           </motion.div>
 

@@ -17,35 +17,46 @@ const StatCard = ({ title, value, icon, color, loading, onClick, details, change
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)'}}
-      className={`chart-container flex flex-col justify-between ${onClick ? 'cursor-pointer' : ''}`}
+      whileHover={{ y: -5 }}
+      className={`card-modern flex flex-col justify-between group overflow-hidden relative ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
-      <div>
-        <div className="flex items-center space-x-4">
-          <div className={`p-3 rounded-full bg-opacity-10 ${color}`}>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-2xl transition-colors duration-300 ${color.replace('text-', 'bg-').replace('600', '100').replace('500', '100')}`}>
             <Icon className={`w-6 h-6 ${color}`} />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            {loading ? (
-              <div className="h-8 w-24 bg-slate-200 rounded-md animate-pulse mt-1"></div>
-            ) : (
-              <p className="text-2xl font-bold text-slate-800">{value}</p>
-            )}
-          </div>
+          {change && !loading && (
+            <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full ${change.value > 0 ? 'bg-emerald-50 text-emerald-600' : change.value < 0 ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-500'}`}>
+              {change.value > 0 ? <TrendingUp className="w-3 h-3" /> : change.value < 0 ? <TrendingDown className="w-3 h-3" /> : null}
+              {change.text.split('%')[0]}%
+            </div>
+          )}
         </div>
-        {change && !loading && (
-          <div className={`mt-2 flex items-center text-xs font-medium ${change.value > 0 ? 'text-green-600' : change.value < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-            {change.value > 0 ? '▲' : change.value < 0 ? '▼' : '▬'} {change.text}
-          </div>
-        )}
+        
+        <div>
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</p>
+          {loading ? (
+            <div className="h-9 w-32 bg-slate-100 rounded-lg animate-pulse mt-1"></div>
+          ) : (
+            <p className="text-3xl font-bold text-slate-800 mt-1 tracking-tight">{value}</p>
+          )}
+        </div>
       </div>
+
       {details && !loading && (
-        <div className="mt-4 pt-2 border-t border-slate-100 text-xs text-slate-500 space-y-1">
-          {details.map((detail, index) => <p key={index}>{detail}</p>)}
+        <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-1 relative z-10">
+          {details.map((detail, index) => (
+            <span key={index} className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+              <div className="w-1 h-1 rounded-full bg-slate-300" />
+              {detail}
+            </span>
+          ))}
         </div>
       )}
+
+      {/* Subtle background decoration */}
+      <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-500 ${color.replace('text-', 'bg-')}`} />
     </motion.div>
   );
 };
@@ -78,7 +89,7 @@ const CustomDateRangePicker = ({ open, setOpen, dateRange, setDateRange, onApply
 
 const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
   const [stats, setStats] = useState({
-    totalBalance: 0, monthlyIncome: 0, monthlyExpenses: 0, livestockCount: 0,
+    totalBalance: 0, monthlyIncome: 0, monthlyExpenses: 0, walletList: [], livestockCount: 0,
     livestockByProperty: [], milkProduction: 0, milkProductionAvg: 0, milkChange: 0,
     activePlots: 0, activeCrops: [], grainStock: [],
   });
@@ -131,7 +142,7 @@ const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
     const prevEndDate = addDays(dateRange[0].startDate, -1).toISOString();
 
     const [walletsRes, transactionsRes, livestockRes, milkRes, prevMilkRes, plotsRes, harvestsRes, stockRes] = await Promise.all([
-      supabase.from('wallets').select('balance').eq('user_id', user.id),
+      supabase.from('wallets').select('id, name, balance, type').eq('user_id', user.id).order('name'),
       supabase.from('transactions').select('type, amount').eq('user_id', user.id).gte('date', startDate).lte('date', endDate),
       profile?.account_type === 'rural' ? supabase.from('livestock').select('id, sex, properties(name), lot_id').eq('user_id', user.id).eq('status', 'ativo') : Promise.resolve({ data: [] }),
       profile?.account_type === 'rural' ? supabase.from('livestock_events').select('quantity, animal_id, lot_id').eq('user_id', user.id).eq('event_type', 'producao_leite').gte('event_date', startDate).lte('event_date', endDate) : Promise.resolve({ data: [] }),
@@ -142,6 +153,7 @@ const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
     ]);
 
     const totalBalance = walletsRes.data?.reduce((acc, w) => acc + w.balance, 0) || 0;
+    const walletList = walletsRes.data || [];
     const monthlyIncome = transactionsRes.data?.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0) || 0;
     const monthlyExpenses = transactionsRes.data?.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0) || 0;
 
@@ -210,8 +222,7 @@ const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
             grainStock
         };
     }
-    
-    setStats({ totalBalance, monthlyIncome, monthlyExpenses, ...ruralStats });
+    setStats({ totalBalance, monthlyIncome, monthlyExpenses, walletList, ...ruralStats });
     setLoading(false);
   }, [user, profile?.account_type, dateRange]);
 
@@ -297,8 +308,8 @@ const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Visão Geral</h2>
-          <p className="text-slate-500">Seu resumo financeiro e de produção em um só lugar.</p>
+          <h2 className="heading-premium">Visão Geral</h2>
+          <p className="subheading-premium">Seu resumo financeiro e de produção em um só lugar.</p>
         </div>
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -341,26 +352,50 @@ const IntelligentDashboard = ({ user, profile, setActiveTab }) => {
         </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="chart-container">
-          <h3 className="font-semibold text-slate-700 mb-4">Ações Rápidas</h3>
-          <div className="flex flex-wrap gap-4">
-            <Button onClick={() => setActiveTab('transactions')} className="btn-primary flex-grow sm:flex-grow-0">
-              <Plus className="w-4 h-4 mr-2" /> Novo Lançamento
-            </Button>
-            <Button onClick={() => setActiveTab('wallets')} variant="outline" className="flex-grow sm:flex-grow-0">
-              <Wallet className="w-4 h-4 mr-2" /> Gerenciar Carteiras
-            </Button>
-            <Button onClick={() => setActiveTab('payables-receivables')} variant="outline" className="flex-grow sm:flex-grow-0">
-              <ArrowRightLeft className="w-4 h-4 mr-2" /> Contas a Pagar/Receber
-            </Button>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }} className="card-modern">
+          <h3 className="text-lg font-bold text-slate-800 mb-6">Ações Rápidas</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <button 
+              onClick={() => setActiveTab('transactions')} 
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-lime-500/5 hover:bg-lime-500/10 border border-lime-500/10 transition-all duration-300 group"
+            >
+              <div className="p-3 rounded-xl bg-lime-500 text-white mb-3 shadow-lg shadow-lime-500/20 group-hover:scale-110 transition-transform">
+                <Plus className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Lançamento</span>
+            </button>
+            
+            <button 
+              onClick={() => setActiveTab('wallets')} 
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/10 transition-all duration-300 group"
+            >
+              <div className="p-3 rounded-xl bg-blue-500 text-white mb-3 shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Carteiras</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('payables-receivables')} 
+              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/10 transition-all duration-300 group"
+            >
+              <div className="p-3 rounded-xl bg-purple-500 text-white mb-3 shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform">
+                <ArrowRightLeft className="w-5 h-5" />
+              </div>
+              <span className="text-sm font-bold text-slate-700">Contas</span>
+            </button>
           </div>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }} className="chart-container">
-          <h3 className="font-semibold text-slate-700 mb-4">Configurações</h3>
-          <p className="text-sm text-slate-500 mb-4">Personalize sua experiência, gerencie categorias e mais.</p>
-          <Button onClick={() => setActiveTab('settings')} variant="outline">
-            <Settings className="w-4 h-4 mr-2" /> Acessar Configurações
-          </Button>
+        
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }} className="card-modern relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Configurações</h3>
+            <p className="text-sm text-slate-500 mb-6">Personalize sua experiência, gerencie categorias e preferências.</p>
+            <Button onClick={() => setActiveTab('settings')} className="btn-premium">
+              <Settings className="w-4 h-4 mr-2" /> Acessar Configurações
+            </Button>
+          </div>
+          <Settings className="absolute -right-8 -bottom-8 w-32 h-32 text-slate-100 opacity-50" />
         </motion.div>
       </div>
 

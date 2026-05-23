@@ -97,74 +97,126 @@ html {
   }
 }
 
-/* Base component styles */
-.chart-container {
-  @apply bg-white p-6 rounded-xl shadow-sm border border-slate-200/80;
+/* Base component styles updated for modern fintech look */
+.chart-container, .card-modern {
+  @apply bg-white p-6 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200/60 transition-all duration-300;
+}
+
+.card-modern:hover {
+  @apply shadow-[0_10px_30px_-10px_rgba(0,0,0,0.08)] border-slate-300/80 transform -translate-y-0.5;
 }
 
 .wallet-card {
-  @apply bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-md hover:border-slate-300;
+  @apply bg-white p-6 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-200/60 transition-all duration-300 hover:shadow-lg hover:border-lime-200;
 }
 
-.input-field {
-  @apply flex h-11 w-full rounded-xl border border-input bg-transparent pl-4 pr-4 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all;
+.input-field, .input-modern {
+  @apply flex h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2 text-sm transition-all duration-200
+  placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20 focus:border-lime-500/50 
+  disabled:cursor-not-allowed disabled:opacity-50;
 }
 
-.btn-primary {
-  @apply inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg h-11 px-6 py-3;
+.btn-primary, .btn-premium {
+  @apply inline-flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 
+  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-500/50 focus-visible:ring-offset-2 
+  disabled:pointer-events-none disabled:opacity-50 
+  bg-[#1A2E27] text-white hover:bg-[#243d34] active:scale-[0.98]
+  shadow-[0_4px_12px_rgba(26,46,39,0.15)] hover:shadow-[0_8px_20px_rgba(26,46,39,0.25)] h-11 px-6 py-3;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-xl text-sm font-semibold ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-slate-100 text-slate-700 hover:bg-slate-200 shadow-sm hover:shadow-md h-11 px-6 py-3;
+  @apply inline-flex items-center justify-center rounded-xl text-sm font-semibold transition-all duration-300 
+  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 
+  disabled:pointer-events-none disabled:opacity-50 
+  bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-[0.98]
+  h-11 px-6 py-3;
 }
 
 .expense-item {
-  @apply bg-white p-4 rounded-xl border border-slate-100/80 shadow-sm transition-all duration-300 hover:shadow-md hover:border-slate-200;
+  @apply bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-lime-100;
+}
+
+.heading-premium {
+  @apply text-3xl font-bold tracking-tight text-slate-800;
+}
+
+.subheading-premium {
+  @apply text-slate-500 font-medium;
 }
 
 /* Landing Page Specific */
 .btn-primary-green {
-  @apply bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold px-8 py-4 rounded-xl transition-all duration-300 hover:from-green-700 hover:to-green-800 transform hover:scale-105 hover:shadow-xl shadow-lg;
+  @apply bg-gradient-to-r from-lime-600 to-lime-700 text-white font-bold px-8 py-4 rounded-2xl transition-all duration-300 hover:from-lime-700 hover:to-lime-800 transform hover:scale-[1.02] hover:shadow-xl shadow-lg;
 }
 
 .btn-outline-green {
-  @apply bg-transparent text-primary font-semibold px-8 py-4 rounded-xl transition-all duration-300 border-2 border-primary hover:bg-green-50 hover:border-green-600;
+  @apply bg-transparent text-lime-600 font-bold px-8 py-4 rounded-2xl transition-all duration-300 border-2 border-lime-600 hover:bg-lime-50 hover:border-lime-700;
 }
 
 .section-title {
-  @apply text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 text-center bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent;
+  @apply text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 text-center bg-gradient-to-br from-slate-900 to-slate-600 bg-clip-text text-transparent;
 }
 
 .section-subtitle {
   @apply text-xl text-slate-600 max-w-3xl mx-auto text-center leading-relaxed;
 }
 
-.font-title {
-  font-family: 'Poppins', sans-serif;
-}
-
 /* Auth Screen Input Styles */
 .input-field-landing {
-  @apply h-12 w-full rounded-xl border border-input bg-transparent py-3 pl-12 pr-12 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all;
-  color: rgba(51, 65, 85, 1);
+  @apply h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 py-3 pl-12 pr-12 text-lg transition-all duration-200
+  focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime-500/20 focus:border-lime-500/50;
+  color: #1e293b;
   font-size: 16px;
 }
 
 .btn-primary-landing {
-  @apply inline-flex items-center justify-center rounded-xl text-base font-semibold text-white ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl hover:scale-105 h-12 px-6;
-  background: linear-gradient(to right, rgb(22, 163, 74), rgb(21, 128, 61));
+  @apply inline-flex items-center justify-center rounded-xl text-base font-bold text-white transition-all duration-300 
+  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime-500/50 transform active:scale-[0.98] 
+  shadow-lg hover:shadow-xl h-12 px-6;
+  background: linear-gradient(to right, #65a30d, #4d7c0f);
 }
 
 .btn-primary-landing:hover {
-  background: linear-gradient(to right, rgb(21, 128, 61), rgb(20, 83, 45));
+  background: linear-gradient(to right, #4d7c0f, #3f6212);
 }
 
 /* Glassmorphism effect */
 .glass-effect {
-  @apply backdrop-blur-xl bg-white/80 border border-white/20;
+  @apply backdrop-blur-xl bg-white/80 border border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
 }
 
-/* Gradient backgrounds */
-.gradient-overlay {
-  background: linear-gradient(135deg, rgba(16, 42, 18, 0.95) 0%, rgba(34, 139, 34, 0.85) 100%);
+/* Custom Scrollbar for better look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-700/30 rounded-full hover:bg-slate-700/50 transition-colors;
+}
+
+/* Page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms, transform 300ms;
 }

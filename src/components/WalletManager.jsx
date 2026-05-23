@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, DollarSign, Calendar, FileText, ArrowRightLeft, Check, Loader2, Bug, RefreshCw, X } from 'lucide-react';
+import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, DollarSign, Calendar, FileText, ArrowRightLeft, Check, Loader2, Bug, RefreshCw, X, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -94,31 +94,64 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
     fetchCardInvoiceTotals();
   }, [initialWallets, fetchCardInvoiceTotals]);
 
-  const fetchInvoices = useCallback(async (cardId) => {
-    if (!cardId) return;
+  const fetchInvoices = useCallback(async (card) => {
+    if (!card) return;
+    const cardId = card.id;
+    const cardName = card.name;
     console.log('[WalletManager] Fetching invoices for card:', cardId);
-    const { data, error } = await fetchWithRetry(
-      () => supabase.from('transactions').select('amount, invoice_date').eq('wallet_id', cardId).eq('type', 'expense'),
-      { context: { functionName: 'fetchInvoices' } }
-    );
     
-    if (error) { 
-      console.error('[WalletManager] Error fetching invoices:', error);
-      handleSupabaseError(error, { functionName: 'fetchInvoices' }); 
+    const [expensesRes, paymentsRes] = await Promise.all([
+      fetchWithRetry(() => supabase.from('transactions').select('amount, invoice_date').eq('wallet_id', cardId).eq('type', 'expense'), { context: { functionName: 'fetchInvoices_expenses' } }),
+      fetchWithRetry(() => supabase.from('transactions').select('amount, description').like('description', `Pagamento Fatura ${cardName} - %`).eq('type', 'transfer'), { context: { functionName: 'fetchInvoices_payments' } })
+    ]);
+    
+    if (expensesRes.error) { 
+      console.error('[WalletManager] Error fetching invoices:', expensesRes.error);
+      handleSupabaseError(expensesRes.error, { functionName: 'fetchInvoices' }); 
       return; 
     }
 
-    const invoices = data.reduce((acc, transaction) => {
+    const expensesData = expensesRes.data || [];
+    const paymentsData = paymentsRes.data || [];
+
+    const invoices = expensesData.reduce((acc, transaction) => {
       if (!transaction.invoice_date) return acc;
       const invoiceMonth = new Date(transaction.invoice_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-      if (!acc[invoiceMonth]) acc[invoiceMonth] = 0;
-      acc[invoiceMonth] += transaction.amount;
+      if (!acc[invoiceMonth]) acc[invoiceMonth] = { total: 0, paid: 0 };
+      acc[invoiceMonth].total += transaction.amount;
       return acc;
     }, {});
-    setCreditCardInvoices(Object.entries(invoices).sort((a, b) => new Date(b[0]) - new Date(a[0])));
+
+    paymentsData.forEach(payment => {
+      // Escape special characters in card name for regex
+      const escapedCardName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = payment.description.match(new RegExp(`Pagamento Fatura ${escapedCardName} - (.+)`));
+      if (match && match[1]) {
+         const monthStr = match[1];
+         if (invoices[monthStr]) {
+           invoices[monthStr].paid += payment.amount;
+         }
+      }
+    });
+
+    const monthsMap = { 'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5, 'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11 };
+    const parseMonthYear = (str) => {
+       const parts = str.toLowerCase().split(' de ');
+       if (parts.length !== 2) return new Date();
+       return new Date(parseInt(parts[1]), monthsMap[parts[0]], 1);
+    };
+
+    const formattedInvoices = Object.entries(invoices).map(([month, data]) => {
+       let status = 'pending';
+       if (data.paid >= data.total - 0.05) status = 'paid';
+       else if (data.paid > 0) status = 'partial';
+       return { month, total: data.total, paid: data.paid, status };
+    }).sort((a, b) => parseMonthYear(b.month) - parseMonthYear(a.month));
+
+    setCreditCardInvoices(formattedInvoices);
   }, []);
 
-  useEffect(() => { if (selectedCreditCard) fetchInvoices(selectedCreditCard.id); }, [selectedCreditCard, fetchInvoices]);
+  useEffect(() => { if (selectedCreditCard) fetchInvoices(selectedCreditCard); }, [selectedCreditCard, fetchInvoices]);
 
   const fetchStatement = useCallback(async () => {
     if (!selectedWalletForStatement || !statementStartDate || !statementEndDate) return;
@@ -284,9 +317,19 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
   const handleShowInvoiceHistory = (card) => setSelectedCreditCard(card);
   const handleCloseInvoiceHistory = () => { setSelectedCreditCard(null); setCreditCardInvoices([]); };
   
-  const handlePayInvoiceClick = (card) => { 
+  const handlePayInvoiceClick = (card, specificInvoice = null) => { 
+    if (specificInvoice) {
+        if (specificInvoice.total - specificInvoice.paid <= 0) {
+            toast({ title: "Informação", description: "Fatura já está paga.", variant: "default" });
+            return;
+        }
+        setInvoiceToPay({ card, month: specificInvoice.month, total: specificInvoice.total - specificInvoice.paid });
+        setShowPayInvoiceModal(true);
+        return;
+    }
+
     const data = cardInvoiceTotals[card.id] || { total: 0 }; 
-    if (data.total <= 0) { toast({ title: "Informação", description: "Não há fatura em aberto para este cartão." }); return; } 
+    if (data.total <= 0) { toast({ title: "Informação", description: "Não há fatura em aberto para este cartão no mês atual." }); return; } 
     const currentMonth = new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' }); 
     setInvoiceToPay({ card, month: currentMonth, total: data.total }); 
     setShowPayInvoiceModal(true); 
@@ -406,20 +449,33 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
   const creditCards = wallets.filter(w => w.type === 'credit');
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-8 relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-slate-800">Gerenciar Finanças</h2>
+        <div>
+          <h2 className="heading-premium">Gerenciar Finanças</h2>
+          <p className="subheading-premium">Controle suas contas, cartões e investimentos.</p>
+        </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowTransferForm(true)} className="flex-1 sm:flex-none btn-secondary bg-white text-slate-700 border-slate-200 hover:bg-slate-50"><ArrowRightLeft className="w-5 h-5 mr-2" /> Transferir</Button>
-          <Button onClick={() => { resetForm(); setShowAddForm(true); }} className="flex-1 sm:flex-none btn-primary bg-emerald-600 hover:bg-emerald-700 text-white"><Plus className="w-5 h-5 mr-2" /> Adicionar</Button>
+          <Button onClick={() => setShowTransferForm(true)} className="flex-1 sm:flex-none btn-secondary">
+            <ArrowRightLeft className="w-4 h-4 mr-2" /> Transferir
+          </Button>
+          <Button onClick={() => { resetForm(); setShowAddForm(true); }} className="flex-1 sm:flex-none btn-premium">
+            <Plus className="w-4 h-4 mr-2" /> Adicionar Conta
+          </Button>
         </div>
       </div>
       
       <Tabs defaultValue="wallets" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-3 mb-8">
-          <TabsTrigger value="wallets" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Carteiras</TabsTrigger>
-          <TabsTrigger value="credit_cards" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Cartões</TabsTrigger>
-          <TabsTrigger value="investments" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white">Investimentos</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 bg-slate-100/50 p-1 rounded-2xl mb-8">
+          <TabsTrigger value="wallets" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900">
+            <Wallet className="w-4 h-4 mr-2" /> Carteiras
+          </TabsTrigger>
+          <TabsTrigger value="credit_cards" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900">
+            <CreditCard className="w-4 h-4 mr-2" /> Cartões
+          </TabsTrigger>
+          <TabsTrigger value="investments" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-slate-900">
+            <TrendingUp className="w-4 h-4 mr-2" /> Investimentos
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="wallets" className="mt-4 focus:outline-none">
@@ -434,28 +490,49 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
               {standardWallets.map(wallet => {
                 const { color, bankData, Icon } = getWalletVisuals(wallet);
                 return (
-                  <motion.div key={wallet.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-md hover:border-slate-300 flex flex-col justify-between group">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                       <div className="w-12 h-12 rounded-xl flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: color }}>{bankData?.logo ? <img src={bankData.logo} alt={bankData.name} className="w-full h-full object-cover" /> : <Icon className="w-6 h-6 text-white" />}</div>
-                       <div>
-                         <h3 className="text-lg font-semibold text-slate-700 mb-0 leading-tight">{wallet.name}</h3>
-                         <p className="text-xs text-slate-500 capitalize">{walletTypes.find(t=>t.id===wallet.type)?.label || wallet.type}</p>
-                       </div>
+                  <motion.div 
+                    key={wallet.id} 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    whileHover={{ y: -5 }} 
+                    className="card-modern group"
+                  >
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center relative shadow-inner group-hover:scale-105 transition-transform duration-300" style={{ backgroundColor: `${color}15` }}>
+                          {bankData?.logo ? (
+                            <img src={bankData.logo} alt={bankData.name} className="w-8 h-8 object-contain" />
+                          ) : (
+                            <Icon className="w-7 h-7" style={{ color }} />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-800 leading-tight">{wallet.name}</h3>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">
+                            {walletTypes.find(t=>t.id===wallet.type)?.label || wallet.type}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                        <button onClick={(e) => { e.stopPropagation(); handleEdit(wallet); }} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-xl hover:bg-blue-50" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(wallet.id); }} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded-xl hover:bg-red-50" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     </div>
-                    <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => { e.stopPropagation(); handleEdit(wallet); }} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-full" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(wallet.id); }} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded-full" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                    <div className="mb-6">
+                      <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Saldo Atual</p>
+                      <p className="text-3xl font-black text-slate-900 tracking-tight">
+                        <span className="text-lg font-bold text-slate-400 mr-1">R$</span>
+                        {parseFloat(wallet.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-sm text-slate-500 mb-1">Saldo Atual</p>
-                    <p className="text-3xl font-bold text-slate-800">R$ {parseFloat(wallet.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                  </div>
-                  <Button variant="ghost" onClick={() => setSelectedWalletForStatement(wallet)} className="w-full mt-4 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-                    <FileText className="w-4 h-4 mr-2"/> Ver Extrato
-                  </Button>
-                </motion.div>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setSelectedWalletForStatement(wallet)} 
+                      className="w-full rounded-xl text-lime-600 hover:text-lime-700 hover:bg-lime-50 font-bold text-xs uppercase tracking-wider border border-transparent hover:border-lime-100 py-6"
+                    >
+                      <FileText className="w-4 h-4 mr-2"/> Ver Extrato Completo
+                    </Button>
+                  </motion.div>
                 );
               })}
             </div>
@@ -475,31 +552,51 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
                 const { color, bankData, Icon } = getWalletVisuals(card);
                 const invoiceData = cardInvoiceTotals[card.id] || { total: 0, txCount: 0, faturaId: null };
                 return (
-                  <motion.div key={card.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 transition-all duration-300 hover:shadow-md hover:border-slate-300 flex flex-col justify-between group relative">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: color }}>{bankData?.logo ? <img src={bankData.logo} alt={bankData.name} className="w-full h-full object-cover" /> : <Icon className="w-6 h-6 text-white" />}</div>
+                  <motion.div 
+                    key={card.id} 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    whileHover={{ y: -5 }} 
+                    className="card-modern group relative overflow-hidden"
+                  >
+                    {/* Background decoration for credit card */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-red-500/10 transition-colors duration-500" />
+                    
+                    <div className="flex items-start justify-between mb-6 relative z-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center relative shadow-inner group-hover:scale-105 transition-transform duration-300" style={{ backgroundColor: `${color}15` }}>
+                          {bankData?.logo ? (
+                            <img src={bankData.logo} alt={bankData.name} className="w-8 h-8 object-contain" />
+                          ) : (
+                            <Icon className="w-7 h-7" style={{ color }} />
+                          )}
+                        </div>
                         <div>
-                           <h3 className="text-lg font-semibold text-slate-700 leading-tight">{card.name}</h3>
-                           <div className="flex items-center space-x-3 text-xs text-slate-500 mt-1">
-                             <span className="flex items-center" title="Dia de Fechamento"><Calendar className="w-3 h-3 mr-1" /> {card.closing_day}</span>
-                             <span className="flex items-center" title="Dia de Vencimento"><Calendar className="w-3 h-3 mr-1 text-red-400" /> {card.due_day}</span>
+                           <h3 className="text-lg font-bold text-slate-800 leading-tight">{card.name}</h3>
+                           <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+                             <span className="flex items-center bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100" title="Dia de Fechamento"><Calendar className="w-3 h-3 mr-1" /> Fecha: {card.closing_day}</span>
+                             <span className="flex items-center bg-red-50 text-red-500 px-2 py-0.5 rounded-md border border-red-100" title="Dia de Vencimento"><Calendar className="w-3 h-3 mr-1" /> Vence: {card.due_day}</span>
                            </div>
                         </div>
                       </div>
-                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {profile?.is_admin && <button onClick={() => handleDebugFatura(invoiceData.faturaId)} className="p-2 text-slate-400 hover:text-purple-600 bg-slate-50 rounded-full" title="Debug Fatura"><Bug className="w-4 h-4" /></button>}
-                          <button onClick={() => handleEdit(card)} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-full" title="Editar"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => handleDelete(card.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded-full" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                      <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                          {profile?.is_admin && <button onClick={() => handleDebugFatura(invoiceData.faturaId)} className="p-2 text-slate-400 hover:text-purple-600 bg-slate-50 rounded-xl" title="Debug Fatura"><Bug className="w-4 h-4" /></button>}
+                          <button onClick={() => handleEdit(card)} className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-xl" title="Editar"><Edit2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDelete(card.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 rounded-xl" title="Excluir"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
-                    <div className="mt-2 bg-red-50 p-4 rounded-xl border border-red-100">
-                      <p className="text-sm text-red-800 font-medium mb-1">Fatura Atual</p>
-                      <p className="text-3xl font-bold text-red-600">R$ {invoiceData.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    
+                    <div className="mb-6 bg-red-50/50 p-5 rounded-2xl border border-red-100 relative z-10 group-hover:bg-red-50 transition-colors">
+                      <p className="text-[10px] text-red-400 uppercase tracking-widest font-bold mb-1">Fatura Atual</p>
+                      <p className="text-3xl font-black text-red-600 tracking-tight">
+                        <span className="text-lg font-bold text-red-400 mr-1">R$</span>
+                        {invoiceData.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
-                    <div className="flex gap-2 mt-4">
-                      <Button variant="outline" onClick={() => handleShowInvoiceHistory(card)} className="flex-1 text-sm border-slate-200">Faturas</Button>
-                      <Button onClick={() => handlePayInvoiceClick(card)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm" disabled={invoiceData.total <= 0}>Pagar Fatura</Button>
+
+                    <div className="flex gap-3 relative z-10">
+                      <Button variant="outline" onClick={() => handleShowInvoiceHistory(card)} className="flex-1 rounded-xl font-bold text-xs uppercase tracking-wider py-5 border-slate-200">Faturas</Button>
+                      <Button onClick={() => handlePayInvoiceClick(card)} className="flex-1 btn-premium bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-5 shadow-red-900/10" disabled={invoiceData.total <= 0}>Pagar</Button>
                     </div>
                   </motion.div>
                 );
@@ -517,68 +614,75 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
         {/* Add/Edit Form Modal */}
         {showAddForm && (
            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden">
-               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    {formData.type === 'credit' ? <CreditCard className="w-5 h-5 text-emerald-600"/> : <Wallet className="w-5 h-5 text-emerald-600"/>}
-                    {editingWallet ? 'Editar' : 'Adicionar'} {formData.type === 'credit' ? 'Cartão de Crédito' : 'Carteira'}
-                  </h3>
-                  <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"><X className="w-5 h-5"/></button>
+             <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-white/20">
+               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                      {formData.type === 'credit' ? <CreditCard className="w-5 h-5 text-lime-600"/> : <Wallet className="w-5 h-5 text-lime-600"/>}
+                      {editingWallet ? 'Editar' : 'Nova'} {formData.type === 'credit' ? 'Cartão' : 'Conta'}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Preencha os detalhes abaixo</p>
+                  </div>
+                  <button onClick={() => setShowAddForm(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-all"><X className="w-5 h-5"/></button>
                </div>
-               <div className="p-6 max-h-[70vh] overflow-y-auto">
-                 <form id="wallet-form" onSubmit={(e) => handleSubmit(e, formData.type === 'credit')} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                      <select value={formData.type} onChange={(e) => setFormData(p => ({ ...p, type: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all bg-white" disabled={editingWallet}>
+               <div className="p-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                 <form id="wallet-form" onSubmit={(e) => handleSubmit(e, formData.type === 'credit')} className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Tipo de Conta</label>
+                      <select value={formData.type} onChange={(e) => setFormData(p => ({ ...p, type: e.target.value }))} className="input-modern bg-white appearance-none cursor-pointer" disabled={editingWallet}>
                         {walletTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
                         <option value="credit">Cartão de Crédito</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Nome/Apelido *</label>
-                      <input type="text" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Conta Corrente XP" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all" required />
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Nome ou Apelido</label>
+                      <input type="text" value={formData.name} onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Conta Corrente Principal" className="input-modern" required />
                     </div>
                     {formData.type !== 'credit' && (
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Saldo Inicial</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Saldo Inicial</label>
                         <div className="relative">
                           <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"/>
-                          <input type="number" step="0.01" value={formData.balance} onChange={(e) => setFormData(p => ({ ...p, balance: e.target.value }))} placeholder="0.00" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all" />
+                          <input type="number" step="0.01" value={formData.balance} onChange={(e) => setFormData(p => ({ ...p, balance: e.target.value }))} placeholder="0,00" className="input-modern pl-11" />
                         </div>
                       </div>
                     )}
                     {formData.type === 'credit' && (
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Dia Fechamento *</label>
-                          <input type="number" min="1" max="31" value={formData.closing_day} onChange={(e) => setFormData(p => ({ ...p, closing_day: e.target.value }))} placeholder="Ex: 5" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all" required={formData.type === 'credit'} />
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Dia Fechamento</label>
+                          <input type="number" min="1" max="31" value={formData.closing_day} onChange={(e) => setFormData(p => ({ ...p, closing_day: e.target.value }))} placeholder="Ex: 5" className="input-modern" required={formData.type === 'credit'} />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 mb-1">Dia Vencimento *</label>
-                          <input type="number" min="1" max="31" value={formData.due_day} onChange={(e) => setFormData(p => ({ ...p, due_day: e.target.value }))} placeholder="Ex: 10" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all" required={formData.type === 'credit'} />
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Dia Vencimento</label>
+                          <input type="number" min="1" max="31" value={formData.due_day} onChange={(e) => setFormData(p => ({ ...p, due_day: e.target.value }))} placeholder="Ex: 10" className="input-modern" required={formData.type === 'credit'} />
                         </div>
                       </div>
                     )}
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Instituição (Opcional)</label>
-                      <select value={formData.bank} onChange={handleBankSelect} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all bg-white">
-                        <option value="">Selecione ou deixe em branco</option>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Instituição Financeira</label>
+                      <select value={formData.bank} onChange={handleBankSelect} className="input-modern bg-white appearance-none cursor-pointer">
+                        <option value="">Personalizada (Sem banco)</option>
                         {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Cor de Identificação</label>
-                      <div className="flex items-center gap-4">
-                         <input type="color" value={formData.color} onChange={(e) => setFormData(p => ({ ...p, color: e.target.value, bank: '' }))} className="w-12 h-12 p-1 rounded cursor-pointer border border-slate-200" />
-                         <span className="text-sm text-slate-500">Escolha uma cor para diferenciar</span>
+                    <div className="space-y-3">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Cor de Destaque</label>
+                      <div className="flex items-center gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                         <input type="color" value={formData.color} onChange={(e) => setFormData(p => ({ ...p, color: e.target.value, bank: '' }))} className="w-12 h-12 p-1 rounded-xl cursor-pointer border-none shadow-sm" />
+                         <div className="space-y-0.5">
+                            <p className="text-sm font-bold text-slate-700">Cor Personalizada</p>
+                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-tight">Usada para identificação visual rápida</p>
+                         </div>
                       </div>
                     </div>
                  </form>
                </div>
-               <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-                 <Button variant="outline" onClick={() => setShowAddForm(false)} className="rounded-xl">Cancelar</Button>
-                 <Button type="submit" form="wallet-form" disabled={isSubmitting} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">
-                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Check className="w-4 h-4 mr-2"/>} Salvar
+               <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+                 <Button variant="ghost" onClick={() => setShowAddForm(false)} className="rounded-xl font-bold text-slate-500">Cancelar</Button>
+                 <Button type="submit" form="wallet-form" disabled={isSubmitting} className="btn-premium px-10">
+                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <Check className="w-4 h-4 mr-2"/>}
+                    {editingWallet ? 'Salvar Alterações' : 'Criar Conta'}
                  </Button>
                </div>
              </motion.div>
@@ -588,45 +692,55 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
         {/* Transfer Form Modal */}
         {showTransferForm && (
            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-blue-600"/> Transferir Saldo</h3>
-                  <button onClick={() => setShowTransferForm(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-full hover:bg-slate-100 transition-colors"><X className="w-5 h-5"/></button>
+             <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-white/20">
+               <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-blue-600"/> Transferir Saldo</h3>
+                    <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Entre contas do Meu Pila</p>
+                  </div>
+                  <button onClick={() => setShowTransferForm(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition-all"><X className="w-5 h-5"/></button>
                </div>
-               <div className="p-6">
-                 <form id="transfer-form" onSubmit={handleTransferSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">De (Origem) *</label>
-                      <select value={transferFormData.source_wallet_id} onChange={(e) => setTransferFormData(p => ({ ...p, source_wallet_id: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white" required>
-                        <option value="">Selecione...</option>
-                        {standardWallets.map(w => <option key={w.id} value={w.id}>{w.name} (Saldo: R$ {w.balance})</option>)}
+               <div className="p-8">
+                 <form id="transfer-form" onSubmit={handleTransferSubmit} className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">De (Origem)</label>
+                      <select value={transferFormData.source_wallet_id} onChange={(e) => setTransferFormData(p => ({ ...p, source_wallet_id: e.target.value }))} className="input-modern bg-white appearance-none cursor-pointer" required>
+                        <option value="">Selecione a conta de origem</option>
+                        {standardWallets.map(w => <option key={w.id} value={w.id}>{w.name} (Saldo: R$ {w.balance.toLocaleString('pt-BR')})</option>)}
                       </select>
                     </div>
-                    <div className="flex justify-center -my-2 relative z-10"><div className="bg-white p-1 rounded-full border border-slate-200"><ArrowRightLeft className="w-4 h-4 text-slate-400 rotate-90" /></div></div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Para (Destino) *</label>
-                      <select value={transferFormData.destination_wallet_id} onChange={(e) => setTransferFormData(p => ({ ...p, destination_wallet_id: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none bg-white" required>
-                        <option value="">Selecione...</option>
+                    <div className="flex justify-center -my-2 relative z-10">
+                      <div className="bg-white p-2 rounded-xl border border-slate-100 shadow-sm text-slate-300">
+                        <ArrowRightLeft className="w-4 h-4 rotate-90" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Para (Destino)</label>
+                      <select value={transferFormData.destination_wallet_id} onChange={(e) => setTransferFormData(p => ({ ...p, destination_wallet_id: e.target.value }))} className="input-modern bg-white appearance-none cursor-pointer" required>
+                        <option value="">Selecione a conta de destino</option>
                         {standardWallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Valor *</label>
-                      <div className="relative">
-                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"/>
-                        <input type="number" step="0.01" min="0.01" value={transferFormData.amount} onChange={(e) => setTransferFormData(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none" required/>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Valor</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"/>
+                          <input type="number" step="0.01" min="0.01" value={transferFormData.amount} onChange={(e) => setTransferFormData(p => ({ ...p, amount: e.target.value }))} placeholder="0,00" className="input-modern pl-11" required/>
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Data *</label>
-                      <input type="date" value={transferFormData.date} onChange={(e) => setTransferFormData(p => ({ ...p, date: e.target.value }))} className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 outline-none" required/>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">Data</label>
+                        <input type="date" value={transferFormData.date} onChange={(e) => setTransferFormData(p => ({ ...p, date: e.target.value }))} className="input-modern" required/>
+                      </div>
                     </div>
                  </form>
                </div>
-               <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-                 <Button variant="outline" onClick={() => setShowTransferForm(false)} className="rounded-xl">Cancelar</Button>
-                 <Button type="submit" form="transfer-form" disabled={isSubmitting} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
-                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <ArrowRightLeft className="w-4 h-4 mr-2"/>} Confirmar
+               <div className="p-8 border-t border-slate-100 flex justify-end gap-4 bg-slate-50/50">
+                 <Button variant="ghost" onClick={() => setShowTransferForm(false)} className="rounded-xl font-bold text-slate-500">Cancelar</Button>
+                 <Button type="submit" form="transfer-form" disabled={isSubmitting} className="btn-premium bg-blue-600 hover:bg-blue-700 shadow-blue-900/10 px-10">
+                    {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : <ArrowRightLeft className="w-4 h-4 mr-2"/>}
+                    Transferir Agora
                  </Button>
                </div>
              </motion.div>
@@ -645,16 +759,18 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
                         <Button variant="ghost" size="icon" onClick={() => setSelectedWalletForStatement(null)} className="rounded-full hover:bg-slate-200"><X className="w-5 h-5"/></Button>
                     </div>
 
-                    <div className="p-6 border-b border-slate-200 bg-white grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-                        <div>
-                          <label className="text-xs font-medium text-slate-500 mb-1 block">Data Inicial</label>
-                          <input type="date" value={statementStartDate} onChange={e => setStatementStartDate(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <div className="p-8 border-b border-slate-200 bg-slate-50/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                        <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] px-1">Data Inicial</label>
+                            <input type="date" value={statementStartDate} onChange={e => setStatementStartDate(e.target.value)} className="input-modern h-10 bg-white" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] px-1">Data Final</label>
+                            <input type="date" value={statementEndDate} onChange={e => setStatementEndDate(e.target.value)} className="input-modern h-10 bg-white" />
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-xs font-medium text-slate-500 mb-1 block">Data Final</label>
-                          <input type="date" value={statementEndDate} onChange={e => setStatementEndDate(e.target.value)} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
-                        </div>
-                        <Button onClick={fetchStatement} className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white">Filtrar</Button>
+                        <Button onClick={fetchStatement} className="btn-premium px-8 h-10 w-full sm:w-auto">Filtrar Extrato</Button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
@@ -726,10 +842,27 @@ const WalletManager = ({ user, profile, initialWallets, onDataChange, categories
                <div className="p-6 max-h-[60vh] overflow-y-auto">
                  {creditCardInvoices.length > 0 ? (
                    <div className="space-y-3">
-                     {creditCardInvoices.map(([month, total]) => (
-                       <div key={month} className="flex justify-between items-center p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-colors">
-                         <span className="font-medium capitalize text-slate-700">{month}</span>
-                         <span className="font-bold text-red-500">R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                     {creditCardInvoices.map((invoice) => (
+                       <div key={invoice.month} className={`flex flex-col p-4 bg-white border ${invoice.status === 'paid' ? 'border-emerald-200 shadow-emerald-500/5' : 'border-slate-200'} rounded-xl transition-colors`}>
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium capitalize text-slate-700">{invoice.month}</span>
+                              {invoice.status === 'paid' && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-emerald-200">Paga</span>}
+                              {invoice.status === 'partial' && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-yellow-200">Parcial</span>}
+                              {invoice.status === 'pending' && <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border border-red-200">Pendente</span>}
+                            </div>
+                            <span className={`font-bold ${invoice.status === 'paid' ? 'text-emerald-600' : 'text-red-500'}`}>R$ {invoice.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          {invoice.status !== 'paid' && (
+                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100">
+                              <span className="text-xs text-slate-500 font-medium">
+                                {invoice.paid > 0 ? `Restante: R$ ${(invoice.total - invoice.paid).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'A pagar'}
+                              </span>
+                              <Button onClick={() => { handleCloseInvoiceHistory(); handlePayInvoiceClick(selectedCreditCard, invoice); }} size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-4 font-bold rounded-lg shadow-red-900/10">
+                                Pagar Fatura
+                              </Button>
+                            </div>
+                          )}
                        </div>
                      ))}
                    </div>

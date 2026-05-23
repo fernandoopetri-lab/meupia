@@ -3,6 +3,7 @@ import { LogIn, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import Logo from "@/components/Logo";
 
 const MotionHeader = motion.header;
 
@@ -26,69 +27,6 @@ function WhatsAppIcon({ className = "w-4 h-4" }) {
   );
 }
 
-function LogoMark({ className = "" }) {
-  return (
-    <div
-      className={[
-        "relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl",
-        "bg-gradient-to-br from-primary via-primary to-primary/70",
-        "shadow-lg shadow-primary/25 ring-1 ring-white/10",
-        className,
-      ].join(" ")}
-      aria-hidden="true"
-    >
-      {/* brilho sutil */}
-      <div className="pointer-events-none absolute -left-4 -top-4 h-10 w-10 rounded-full bg-white/15 blur-md" />
-      <div className="pointer-events-none absolute -bottom-5 -right-5 h-12 w-12 rounded-full bg-black/15 blur-md" />
-
-      {/* marca (monograma + detalhe orgânico/tech) */}
-      <svg
-        viewBox="0 0 40 40"
-        className="relative h-8 w-8 text-primary-foreground"
-        fill="none"
-      >
-        {/* aro interno (moeda) */}
-        <circle
-          cx="20"
-          cy="20"
-          r="15"
-          stroke="currentColor"
-          strokeOpacity="0.35"
-          strokeWidth="1.5"
-        />
-
-        {/* circuitos simples */}
-        <path
-          d="M27 12h4m-4 16h4M9 20h4"
-          stroke="currentColor"
-          strokeOpacity="0.5"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <circle cx="31" cy="12" r="1.3" fill="currentColor" fillOpacity="0.7" />
-        <circle cx="31" cy="28" r="1.3" fill="currentColor" fillOpacity="0.7" />
-        <circle cx="9" cy="20" r="1.3" fill="currentColor" fillOpacity="0.7" />
-
-        {/* monograma P */}
-        <path
-          d="M16 29V12.5c0-.8.7-1.5 1.5-1.5H22c3.3 0 6 2.2 6 5.2 0 3-2.7 5.2-6 5.2h-6"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* folha (toque orgânico) */}
-        <path
-          d="M18.2 18.3c-1.9-.2-3.4-1.8-3.5-3.7 2.2-.3 4.2 1 4.7 3.1.1.3-.4.6-1.2.6Z"
-          fill="currentColor"
-          fillOpacity="0.9"
-        />
-      </svg>
-    </div>
-  );
-}
-
 export function Header({ onAuthClick }) {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -104,13 +42,7 @@ export function Header({ onAuthClick }) {
         <div className="mt-4 flex items-center justify-between rounded-3xl border border-border/60 bg-card/75 px-4 py-3 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-card/65 sm:px-6">
           {/* Logo */}
           <a href="/pessoal" className="flex items-center gap-3">
-            <LogoMark />
-            <div className="flex flex-col leading-none">
-              <span className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-primary/80">
-                Portal Financeiro
-              </span>
-              <span className="text-lg font-bold text-foreground">MEU PILA</span>
-            </div>
+            <Logo size="md" />
           </a>
 
           {/* Desktop Navigation */}
