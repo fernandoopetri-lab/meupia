@@ -67,7 +67,7 @@ const SignUpPage = () => {
       const defaultPlan = await getDefaultPlan();
       const cleanCPF = formData.cpf ? removeMask(formData.cpf) : '';
       const cleanPhone = formData.phone ? removeMask(formData.phone) : '';
-      
+
       const { data, error: authError } = await signUp(formData.email, formData.password, {
         data: {
           name: formData.name,
@@ -86,50 +86,50 @@ const SignUpPage = () => {
         }
         return;
       }
-      
+
       if (data?.user) {
         try {
-            const trialEndDate = new Date();
-            trialEndDate.setDate(trialEndDate.getDate() + 30);
-            const trialEndDateISO = trialEndDate.toISOString();
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + 30);
+          const trialEndDateISO = trialEndDate.toISOString();
 
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: data.user.id,
-                name: formData.name,
-                cpf: cleanCPF,
-                phone: cleanPhone,
-                account_type: 'pessoal',
-                plan_status: 'trial',
-                trial_end_date: trialEndDateISO,
-                plan_expires_at: trialEndDateISO
-              }, { onConflict: 'id' });
-              
-            if (profileError) console.error("Profile creation error:", profileError);
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              name: formData.name,
+              cpf: cleanCPF,
+              phone: cleanPhone,
+              account_type: 'pessoal',
+              plan_status: 'trial',
+              trial_end_date: trialEndDateISO,
+              plan_expires_at: trialEndDateISO
+            }, { onConflict: 'id' });
 
-            await createDefaultUserData(data.user.id, supabase, defaultPlan?.plan_type || 'PESSOAL', {
-               name: formData.name,
-               phone: cleanPhone,
-               cpf: cleanCPF
-            });
+          if (profileError) console.error("Profile creation error:", profileError);
 
-            supabase.functions.invoke('create-asaas-customer', {
-              body: {
-                name: formData.name, email: formData.email, user_id: data.user.id,
-                cpfCnpj: cleanCPF, mobilePhone: cleanPhone, phone: cleanPhone
-              }
-            }).catch(err => console.error("Asaas creation edge function error:", err));
+          await createDefaultUserData(data.user.id, supabase, defaultPlan?.plan_type || 'PESSOAL', {
+            name: formData.name,
+            phone: cleanPhone,
+            cpf: cleanCPF
+          });
 
-            supabase.functions.invoke('dispatch-user-webhook', {
-              body: {
-                userId: data.user.id, email: formData.email, name: formData.name,
-                phone: cleanPhone, whatsapp: cleanPhone, cpf: cleanCPF,
-                plan: defaultPlan?.name || 'Trial', trial_ends: trialEndDateISO
-              }
-            }).catch(err => console.error("Webhook dispatch edge function error:", err));
+          supabase.functions.invoke('create-asaas-customer', {
+            body: {
+              name: formData.name, email: formData.email, user_id: data.user.id,
+              cpfCnpj: cleanCPF, mobilePhone: cleanPhone, phone: cleanPhone
+            }
+          }).catch(err => console.error("Asaas creation edge function error:", err));
+
+          supabase.functions.invoke('dispatch-user-webhook', {
+            body: {
+              userId: data.user.id, email: formData.email, name: formData.name,
+              phone: cleanPhone, whatsapp: cleanPhone, cpf: cleanCPF,
+              plan: 'pessoal', trial_ends: trialEndDateISO
+            }
+          }).catch(err => console.error("Webhook dispatch edge function error:", err));
         } catch (postSignupErr) {
-            console.error("Error during post-signup operations:", postSignupErr);
+          console.error("Error during post-signup operations:", postSignupErr);
         }
       }
 
@@ -198,15 +198,15 @@ const SignUpPage = () => {
 
             <div className="p-6 rounded-2xl bg-white/[0.04] border border-white/10">
               <p className="text-white/50 italic">
-                "O Meu Pila mudou minha forma de lidar com dinheiro. Agora sei exatamente para onde vai cada centavo!"
+                "O Meu Pila mudou minha forma de lidar com dinheiro. Agora sei exatamente para onde vai cada centavo, é muito fácil"
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                   <span className="text-emerald-400 font-semibold">M</span>
                 </div>
                 <div>
-                  <p className="font-medium text-white">Marina Silva</p>
-                  <p className="text-sm text-white/40">Usuária desde 2024</p>
+                  <p className="font-medium text-white">Valdina Petri</p>
+                  <p className="text-sm text-white/40">Usuária ativa desde Março de 2026</p>
                 </div>
               </div>
             </div>
@@ -310,9 +310,8 @@ const SignUpPage = () => {
                   {/* Terms */}
                   <div className="flex items-start gap-3 pt-2">
                     <button type="button" onClick={() => setAcceptTerms(!acceptTerms)}
-                      className={`w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors mt-0.5 ${
-                        acceptTerms ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-emerald-500/50'
-                      }`}>
+                      className={`w-5 h-5 rounded border flex-shrink-0 flex items-center justify-center transition-colors mt-0.5 ${acceptTerms ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 hover:border-emerald-500/50'
+                        }`}>
                       {acceptTerms && <Check className="w-3 h-3 text-white" />}
                     </button>
                     <p className="text-sm text-white/40">

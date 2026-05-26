@@ -144,7 +144,7 @@ const SignUpPage = () => {
               body: {
                 userId: data.user.id, email: formData.email, name: formData.name,
                 phone: cleanPhone, whatsapp: cleanPhone, cpf: cleanCPF,
-                plan: defaultPlan?.name || 'Trial', trial_ends: trialEndDateISO
+                plan: 'pessoal', trial_ends: trialEndDateISO
               }
             }).catch(err => console.error("[SignUpPage] Webhook dispatch edge function error:", err));
             

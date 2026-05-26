@@ -233,7 +233,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
             supabase.functions.invoke('dispatch-user-webhook', {
               body: {
                 userId: data.user.id, email: formData.email, name: formData.name,
-                phone: cleanPhone, whatsapp: cleanPhone, plan: defaultPlan?.name || 'Trial', cpf: cleanCPF
+                phone: cleanPhone, whatsapp: cleanPhone, plan: null, cpf: cleanCPF
               }
             }).catch(err => console.error('[AuthScreen] Failed to dispatch user webhook:', err));
 
