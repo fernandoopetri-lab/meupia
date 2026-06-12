@@ -14,6 +14,7 @@ import { removeMask, formatCPF, formatWhatsApp } from '@/utils/formatters/maskUt
 import { checkCpfExists } from '@/utils/validators/cpfValidation';
 import { supabase } from '@/lib/customSupabaseClient';
 import { createDefaultUserData } from '@/utils/createDefaultUserData';
+import Logo from '@/components/Logo';
 
 const benefits = [
   'Registre gastos pelo WhatsApp',
@@ -165,10 +166,7 @@ const SignUpPage = () => {
             className="hidden lg:block"
           >
             <Link to="/" className="inline-flex items-center gap-3 mb-8">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                <span className="text-white font-bold text-xl">$</span>
-              </div>
-              <span className="text-3xl font-bold text-white tracking-tight">MEU PILA</span>
+              <Logo theme="dark" size="lg" />
             </Link>
 
             <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
@@ -202,7 +200,7 @@ const SignUpPage = () => {
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <span className="text-emerald-400 font-semibold">M</span>
+                  <span className="text-emerald-400 font-semibold">V</span>
                 </div>
                 <div>
                   <p className="font-medium text-white">Valdina Petri</p>
@@ -219,12 +217,9 @@ const SignUpPage = () => {
             transition={{ duration: 0.5 }}
           >
             {/* Mobile logo */}
-            <div className="lg:hidden text-center mb-8">
-              <Link to="/" className="inline-flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
-                  <span className="text-white font-bold">$</span>
-                </div>
-                <span className="text-2xl font-bold text-white">MEU PILA</span>
+            <div className="lg:hidden flex justify-center mb-8">
+              <Link to="/">
+                <Logo theme="dark" size="md" />
               </Link>
             </div>
 

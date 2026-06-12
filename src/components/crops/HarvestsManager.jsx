@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, Calendar, Package, DollarSign, Edit2, Trash2, MapPin, Wheat, Filter, ArrowLeft, Beaker, PackageCheck } from 'lucide-react';
+import { ClipboardList, Calendar, Package, DollarSign, Edit2, Trash2, MapPin, Wheat, Filter, ArrowLeft, Beaker, PackageCheck, Loader2 } from 'lucide-react';
 import HarvestDetails from './HarvestDetails';
 
 const HarvestsManager = ({ user, setActiveTab }) => {
