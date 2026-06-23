@@ -104,7 +104,8 @@ const SignUpPage = () => {
               account_type: 'pessoal',
               plan_status: 'trial',
               trial_end_date: trialEndDateISO,
-              plan_expires_at: trialEndDateISO
+              plan_expires_at: trialEndDateISO,
+              last_access_check_at: new Date().toISOString()
             }, { onConflict: 'id' });
 
           if (profileError) console.error("Profile creation error:", profileError);

@@ -199,7 +199,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
                     name: formData.name,
                     cpf: cleanCPF,
                     phone: cleanPhone, 
-                    account_type: null 
+                    account_type: null,
+                    last_access_check_at: new Date().toISOString()
                 }, { onConflict: 'id' });
             
             console.log("[AuthScreen] (4) After createProfile completed. Error:", profileError?.message || "None");

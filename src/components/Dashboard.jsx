@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, LayoutDashboard, Wallet, TrendingUp, TrendingDown, Landmark, 
-  BarChart3, Settings, LogOut, Menu, X, ChevronRight, User, Bell, 
-  ChevronDown, Check, Info, Shield, HelpCircle, Smartphone, Map, 
-  Wheat, Beef, Droplets, Calendar, PlusCircle, Search, Tags as TagsIcon, MapPin, 
-  GitCommit, Beaker, Package, Archive, Baby, Milk, Layers, 
-  ShoppingCart, DollarSign, Syringe, ArrowRightLeft, 
-  CircleDot as RepeatIcon, ArrowUpRight, ArrowDownRight, 
+import {
+  Plus, LayoutDashboard, Wallet, TrendingUp, TrendingDown, Landmark,
+  BarChart3, Settings, LogOut, Menu, X, ChevronRight, User, Bell,
+  ChevronDown, Check, Info, Shield, HelpCircle, Smartphone, Map,
+  Wheat, Beef, Droplets, Calendar, PlusCircle, Search, Tags as TagsIcon, MapPin,
+  GitCommit, Beaker, Package, Archive, Baby, Milk, Layers,
+  ShoppingCart, DollarSign, Syringe, ArrowRightLeft,
+  CircleDot as RepeatIcon, ArrowUpRight, ArrowDownRight,
   Lock, Clock, AlertTriangle, Crown, ShieldCheck
 } from 'lucide-react';
 import Logo from '@/components/Logo';
@@ -39,6 +39,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { checkExpirationWarning } from '@/utils/checkUserAccess';
 import { useToast } from '@/components/ui/use-toast';
 import { fetchWithRetry } from '@/utils/supabaseQueryHelper';
+import { checkAndGenerateRecurringExpenses } from '@/utils/recurringExpensesScheduler';
 
 const parseWalletColor = (colorString) => {
   try {
@@ -46,8 +47,49 @@ const parseWalletColor = (colorString) => {
       const parsed = JSON.parse(colorString);
       return { hex: parsed.hex, bank: parsed.bank };
     }
-  } catch (e) {}
+  } catch (e) { }
   return { hex: colorString, bank: null };
+};
+
+const calculateUnpaidInvoiceTotal = (cardId, cardName, allTransactions) => {
+  const expenses = allTransactions.filter(t => t.wallet_id === cardId && t.type === 'expense');
+  
+  const payments = allTransactions.filter(t => 
+    t.type === 'transfer' && 
+    t.description && 
+    t.description.startsWith(`Pagamento Fatura ${cardName} - `)
+  );
+
+  const invoices = {};
+  expenses.forEach(t => {
+    if (!t.invoice_date) return;
+    const invoiceMonthStr = new Date(t.invoice_date + 'T00:00:00').toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    if (!invoices[invoiceMonthStr]) {
+      invoices[invoiceMonthStr] = { total: 0, paid: 0 };
+    }
+    invoices[invoiceMonthStr].total += t.amount;
+  });
+
+  payments.forEach(p => {
+    const escapedCardName = cardName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = p.description.match(new RegExp(`Pagamento Fatura ${escapedCardName} - (.+)`));
+    if (match && match[1]) {
+      const monthStr = match[1];
+      if (invoices[monthStr]) {
+        invoices[monthStr].paid += p.amount;
+      }
+    }
+  });
+
+  let unpaidTotal = 0;
+  Object.values(invoices).forEach(inv => {
+    const remaining = inv.total - inv.paid;
+    if (remaining > 0.05) {
+      unpaidTotal += remaining;
+    }
+  });
+
+  return unpaidTotal;
 };
 
 const Dashboard = ({
@@ -170,6 +212,26 @@ const Dashboard = ({
   }, [user?.id, toast]);
 
   useEffect(() => {
+    if (!user?.id) return;
+
+    const sessionKey = `meupila_recurring_expenses_checked_${user.id}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    const checkRecurring = async () => {
+      try {
+        await checkAndGenerateRecurringExpenses(user, toast, () => {
+          fetchData();
+        });
+        sessionStorage.setItem(sessionKey, '1');
+      } catch (err) {
+        console.error('Failed to run recurring expenses check:', err);
+      }
+    };
+
+    checkRecurring();
+  }, [user, toast, fetchData]);
+
+  useEffect(() => {
     if (profile?.plan_status === 'trial' && !profile?.is_admin) {
       const expiresAt = new Date(profile.plan_expires_at);
       const now = new Date();
@@ -232,7 +294,7 @@ const Dashboard = ({
       },
       {
         id: 'wallets',
-        label: 'Finanças',
+        label: 'Carteiras',
         icon: Wallet
       },
       {
@@ -354,49 +416,49 @@ const Dashboard = ({
     const totalBalance = wallets.reduce((sum, wallet) => sum + (wallet.balance || 0), 0);
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
-    
+
     const monthlyIncome = transactions
       .filter(t => {
         const tDate = new Date(t.date);
-        return t.type === 'income' && 
-               tDate.getMonth() === currentMonth && 
-               tDate.getFullYear() === currentYear;
+        return t.type === 'income' &&
+          tDate.getMonth() === currentMonth &&
+          tDate.getFullYear() === currentYear;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
     const monthlyExpenses = transactions
       .filter(t => {
         const tDate = new Date(t.date);
-        return t.type === 'expense' && 
-               tDate.getMonth() === currentMonth && 
-               tDate.getFullYear() === currentYear;
+        return t.type === 'expense' &&
+          tDate.getMonth() === currentMonth &&
+          tDate.getFullYear() === currentYear;
       })
       .reduce((sum, t) => sum + t.amount, 0);
 
     const last6MonthsData = useMemo(() => {
       const data = [];
       const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      
+
       for (let i = 5; i >= 0; i--) {
         const date = new Date();
         date.setMonth(date.getMonth() - i);
         const month = date.getMonth();
         const year = date.getFullYear();
-        
+
         const income = transactions
           .filter(t => {
             const tDate = new Date(t.date);
             return t.type === 'income' && tDate.getMonth() === month && tDate.getFullYear() === year;
           })
           .reduce((sum, t) => sum + t.amount, 0);
-        
+
         const expenses = transactions
           .filter(t => {
             const tDate = new Date(t.date);
             return t.type === 'expense' && tDate.getMonth() === month && tDate.getFullYear() === year;
           })
           .reduce((sum, t) => sum + t.amount, 0);
-        
+
         data.push({
           month: monthNames[month],
           receitas: income,
@@ -404,25 +466,25 @@ const Dashboard = ({
           saldo: income - expenses
         });
       }
-      
+
       return data;
     }, [transactions]);
 
     const expensesByCategory = useMemo(() => {
       const categoryMap = {};
-      
+
       transactions
         .filter(t => {
           const tDate = new Date(t.date);
-          return t.type === 'expense' && 
-                 tDate.getMonth() === currentMonth && 
-                 tDate.getFullYear() === currentYear;
+          return t.type === 'expense' &&
+            tDate.getMonth() === currentMonth &&
+            tDate.getFullYear() === currentYear;
         })
         .forEach(t => {
           const categoryName = t.categories?.name || 'Sem categoria';
           categoryMap[categoryName] = (categoryMap[categoryName] || 0) + t.amount;
         });
-      
+
       return Object.entries(categoryMap)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
@@ -521,7 +583,7 @@ const Dashboard = ({
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
                 <YAxis stroke="#64748b" fontSize={12} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                   formatter={(value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 />
@@ -558,7 +620,7 @@ const Dashboard = ({
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     />
                   </PieChart>
@@ -605,10 +667,13 @@ const Dashboard = ({
                   const { hex, bank } = parseWalletColor(wallet.color);
                   const bankData = banks.find(b => b.id === bank);
                   const color = hex || '#10b981';
+                  const displayBalance = wallet.type === 'credit'
+                    ? -calculateUnpaidInvoiceTotal(wallet.id, wallet.name, transactions)
+                    : wallet.balance;
                   return (
                     <div key={wallet.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100 hover:border-emerald-200 transition-colors cursor-pointer group" onClick={() => setActiveTab('wallets')}>
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center relative shadow-inner group-hover:scale-105 transition-transform duration-300"
                           style={{ backgroundColor: `${color}15` }}
                         >
@@ -623,8 +688,8 @@ const Dashboard = ({
                           <p className="text-[9px] text-slate-400 uppercase tracking-wider mt-0.5">{wallet.type === 'credit' ? 'Cartão de Crédito' : 'Padrão'}</p>
                         </div>
                       </div>
-                      <span className={`text-sm font-bold whitespace-nowrap ${wallet.balance >= 0 ? 'text-slate-800' : 'text-red-500'}`}>
-                        R$ {Number(wallet.balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      <span className={`text-sm font-bold whitespace-nowrap ${displayBalance >= 0 ? 'text-slate-800' : 'text-red-500'}`}>
+                        R$ {Number(displayBalance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   );
@@ -652,14 +717,14 @@ const Dashboard = ({
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                 <XAxis dataKey="month" stroke="#64748b" fontSize={12} />
                 <YAxis stroke="#64748b" fontSize={12} />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
                   formatter={(value) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="saldo" 
-                  stroke="#84cc16" 
+                <Line
+                  type="monotone"
+                  dataKey="saldo"
+                  stroke="#84cc16"
                   strokeWidth={3}
                   dot={{ fill: '#84cc16', r: 4 }}
                   activeDot={{ r: 6 }}
@@ -750,10 +815,10 @@ const Dashboard = ({
     const Icon = item.icon;
     const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.id === activeTab));
     const isExactActive = activeTab === item.id;
-    
+
     const baseClasses = `w-full flex items-center space-x-3 rounded-xl transition-all duration-300 group relative overflow-hidden`;
     const padding = isSubItem ? 'pl-11 pr-3 py-2' : 'px-4 py-3';
-    
+
     // Modern colors and effects
     const activeBg = isExactActive ? 'bg-lime-500/10 shadow-[inset_0_0_15px_rgba(132,204,22,0.1)]' : 'hover:bg-white/5';
     const textColors = isExactActive ? 'text-lime-400 font-semibold' : 'text-slate-400 group-hover:text-white';
@@ -809,7 +874,7 @@ const Dashboard = ({
         >
           <Icon className={`${iconColors} transition-colors duration-300`} size={20} />
           <span className={`${textColors} transition-colors duration-300`}>{item.label}</span>
-          
+
           {isExactActive && (
             <motion.div
               layoutId="active-indicator"
@@ -839,7 +904,7 @@ const Dashboard = ({
         {menuItems.map(item => (
           <NavButton key={item.id} item={item} />
         ))}
-        
+
         <div className="pt-8 px-4 mb-4">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
             Preferências
@@ -878,7 +943,7 @@ const Dashboard = ({
               </div>
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate leading-tight">
               {profile?.name || 'Usuário'}
@@ -888,7 +953,7 @@ const Dashboard = ({
             </p>
           </div>
 
-          <button 
+          <button
             onClick={() => setActiveTab('settings')}
             className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/10 transition-colors"
             title="Ver Perfil"
@@ -943,9 +1008,8 @@ const Dashboard = ({
 
       <div className="flex">
         <aside
-          className={`fixed lg:relative inset-y-0 left-0 z-[60] transform transition-transform duration-300 ${
-            isMobileMenuOpen ? 'translate-x-0 shadow-2xl shadow-black/50' : '-translate-x-full lg:translate-x-0'
-          } w-72`}
+          className={`fixed lg:relative inset-y-0 left-0 z-[60] transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl shadow-black/50' : '-translate-x-full lg:translate-x-0'
+            } w-72`}
         >
           <SidebarContent />
         </aside>
@@ -967,18 +1031,17 @@ const Dashboard = ({
             </motion.div>
             <div className="flex items-center gap-6">
               {expirationWarning && (
-                  <div className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 border shadow-sm ${
-                      expirationWarning.daysLeft === 0 
-                        ? 'bg-red-50 text-red-600 border-red-100' 
-                        : 'bg-amber-50 text-amber-600 border-amber-100'
+                <div className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 border shadow-sm ${expirationWarning.daysLeft === 0
+                    ? 'bg-red-50 text-red-600 border-red-100'
+                    : 'bg-amber-50 text-amber-600 border-amber-100'
                   }`}>
-                      <Clock className="w-4 h-4" />
-                      <span>
-                          {expirationWarning.type === 'trial' ? 'Teste' : 'Plano'} vence {expirationWarning.daysLeft === 0 ? 'hoje' : `em ${expirationWarning.daysLeft} dias`}
-                      </span>
-                  </div>
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {expirationWarning.type === 'trial' ? 'Teste' : 'Plano'} vence {expirationWarning.daysLeft === 0 ? 'hoje' : `em ${expirationWarning.daysLeft} dias`}
+                  </span>
+                </div>
               )}
-              
+
               {profile?.is_admin ? (
                 <div className="bg-yellow-50 border border-yellow-100 text-yellow-600 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2">
                   <Crown className="w-4 h-4" />
@@ -992,9 +1055,9 @@ const Dashboard = ({
                   </div>
                 )
               )}
-              
+
               <div className="w-px h-8 bg-slate-200/60 mx-2" />
-              
+
               <NotificationBell
                 user={user}
                 onNotificationClick={url => url && setActiveTab(url.replace('/', ''))}

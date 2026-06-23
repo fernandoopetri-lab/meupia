@@ -17,6 +17,13 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = useCallback(async () => {
     try {
+      const { data } = await supabase.auth.getSession();
+      const userId = data?.session?.user?.id;
+      if (userId) {
+        try {
+          sessionStorage.removeItem(`last_access_updated_${userId}`);
+        } catch (e) {}
+      }
       await retryFetch(() => supabase.auth.signOut(), {
         maxRetries: 2,
         context: { functionName: 'signOut' }
@@ -73,6 +80,29 @@ export const AuthProvider = ({ children }) => {
           handleSession(null);
         } else {
           handleSession(currentSession);
+          
+          if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentSession?.user) {
+            try {
+              const sessionKey = `last_access_updated_${currentSession.user.id}`;
+              if (typeof window !== 'undefined' && window.sessionStorage && !sessionStorage.getItem(sessionKey)) {
+                supabase
+                  .from('profiles')
+                  .update({ last_access_check_at: new Date().toISOString() })
+                  .eq('id', currentSession.user.id)
+                  .then(({ error: updateError }) => {
+                    if (!updateError) {
+                      try {
+                        sessionStorage.setItem(sessionKey, 'true');
+                      } catch (e) {}
+                    } else {
+                      console.error('Failed to update last_access_check_at on auth state change:', updateError);
+                    }
+                  });
+              }
+            } catch (e) {
+              console.error('Error handling last_access_check_at update:', e);
+            }
+          }
         }
       }
     });

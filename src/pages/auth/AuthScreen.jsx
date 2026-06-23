@@ -129,7 +129,14 @@ const AuthScreen = ({ onAuthSuccess }) => {
         } 
         
         if (data?.user) {
-            await supabase.from('profiles').upsert({ id: data.user.id, name: formData.name, cpf: cleanCPF, phone: cleanPhone, account_type: null }, { onConflict: 'id' });
+            await supabase.from('profiles').upsert({
+               id: data.user.id,
+               name: formData.name,
+               cpf: cleanCPF,
+               phone: cleanPhone,
+               account_type: null,
+               last_access_check_at: new Date().toISOString()
+             }, { onConflict: 'id' });
             await createDefaultUserData(data.user.id, supabase, planType, { name: formData.name, phone: cleanPhone, cpf: cleanCPF });
             toast({ title: "Sucesso!", description: "Conta criada! Por favor, verifique seu e-mail para confirmar." });
         }

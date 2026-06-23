@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
   Calendar,
   DollarSign,
   Tag,
@@ -32,7 +32,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const defaultFormState = {
     type: 'expense',
     amount: '',
@@ -84,7 +84,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.amount || !formData.description || !formData.category_id || !formData.wallet_id) {
       toast({ title: "Erro", description: "Por favor, preencha todos os campos.", variant: "destructive" });
       return;
@@ -112,7 +112,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
 
     const transactionsToInsert = [];
     const originalDate = new Date(formData.date + 'T00:00:00'); // Ensure local timezone
-    
+
     for (let i = 0; i < installments; i++) {
       const transactionDate = new Date(originalDate);
       transactionDate.setMonth(originalDate.getMonth() + i);
@@ -144,7 +144,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
     if (installments > 1 && inserted && inserted.length > 0) {
       const firstTransactionId = inserted[0].id;
       const updates = inserted.map(t => ({ id: t.id, installment_of: firstTransactionId }));
-      
+
       const { error: updateError } = await fetchWithRetry(
         () => supabase.from('transactions').upsert(updates, { onConflict: 'id' }),
         { context: { functionName: 'upsertTransactionInstallments' } }
@@ -159,13 +159,13 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
     if (selectedWallet.type !== 'credit') {
       const balanceChange = amount * (formData.type === 'income' ? 1 : -1);
       const newBalance = parseFloat(selectedWallet.balance) + balanceChange;
-      
+
       await fetchWithRetry(
         () => supabase.from('wallets').update({ balance: newBalance }).eq('id', walletId),
         { context: { functionName: 'updateWalletBalance' } }
       );
     }
-    
+
     toast({ title: "Sucesso!", description: `Lançamento(s) adicionado(s) com sucesso.` });
     await onDataChange();
     resetForm();
@@ -174,7 +174,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
   const handleUpdate = async () => {
     const amount = parseFloat(formData.amount);
     const walletId = parseInt(formData.wallet_id);
-    
+
     const originalTransaction = transactions.find(t => t.id === editingTransaction.id);
     const originalAmount = parseFloat(originalTransaction.amount);
     const originalWallet = wallets.find(w => w.id === originalTransaction.wallet_id);
@@ -248,7 +248,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
     const categoryName = transaction.categories?.name || transaction.category || '';
     const matchesType = filterType === 'all' || transaction.type === filterType;
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         categoryName.toLowerCase().includes(searchTerm.toLowerCase());
+      categoryName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesType && matchesSearch;
   });
 
@@ -314,8 +314,8 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
               {parseFloat(transaction.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <button 
-            onClick={() => handleEditClick(transaction)} 
+          <button
+            onClick={() => handleEditClick(transaction)}
             className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
           >
             <Edit2 className="w-4 h-4" />
@@ -341,18 +341,18 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="card-modern relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-lime-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
-            
+
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-xl font-bold text-slate-800">{editingTransaction ? 'Editar' : 'Novo'} Lançamento</h3>
-                <button onClick={resetForm} className="text-slate-400 hover:text-slate-600 transition-colors"><X className="w-6 h-6"/></button>
+                <button onClick={resetForm} className="text-slate-400 hover:text-slate-600 transition-colors"><X className="w-6 h-6" /></button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, type: 'expense', category_id: '' }))} 
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, type: 'expense', category_id: '' }))}
                     className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${formData.type === 'expense' ? 'border-red-500 bg-red-50/50 shadow-inner' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <div className={`p-3 rounded-xl mb-2 ${formData.type === 'expense' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'bg-slate-100 text-slate-400'}`}>
@@ -360,10 +360,10 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
                     </div>
                     <span className={`text-sm font-bold uppercase tracking-widest ${formData.type === 'expense' ? 'text-red-700' : 'text-slate-400'}`}>Despesa</span>
                   </button>
-                  
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, type: 'income', category_id: '' }))} 
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, type: 'income', category_id: '' }))}
                     className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-300 ${formData.type === 'income' ? 'border-lime-500 bg-lime-50/50 shadow-inner' : 'border-slate-100 bg-white hover:border-slate-200'}`}
                   >
                     <div className={`p-3 rounded-xl mb-2 ${formData.type === 'income' ? 'bg-lime-500 text-white shadow-lg shadow-lime-500/20' : 'bg-slate-100 text-slate-400'}`}>
@@ -381,7 +381,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
                       <input type="number" step="0.01" value={formData.amount} onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))} placeholder="0,00" className="input-modern pl-12 text-lg font-bold" required />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Forma de Pagamento / Conta</label>
                     <select value={formData.wallet_id} onChange={(e) => setFormData(prev => ({ ...prev, wallet_id: e.target.value }))} className="input-modern bg-white appearance-none cursor-pointer" required>
@@ -404,7 +404,7 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
                       </select>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Data da Transação</label>
                     <div className="relative">
@@ -458,9 +458,9 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
               { id: 'expense', label: 'Despesas' },
               { id: 'transfer', label: 'Transferências' }
             ].map(type => (
-              <button 
+              <button
                 key={type.id}
-                onClick={() => setFilterType(type.id)} 
+                onClick={() => setFilterType(type.id)}
                 className={`flex-1 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${filterType === type.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 {type.label}
@@ -472,11 +472,11 @@ const TransactionManager = ({ user, profile, initialWallets, initialTransactions
 
       <div className="space-y-4">
         {filteredTransactions.map((transaction, index) => (
-          <motion.div 
-            key={transaction.id} 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ delay: index * 0.03 }} 
+          <motion.div
+            key={transaction.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.03 }}
             className="card-modern group hover:bg-slate-50/80 !p-4 !px-6"
           >
             {renderTransactionItem(transaction)}
