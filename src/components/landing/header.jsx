@@ -69,7 +69,7 @@ export function Header({ onAuthClick }) {
             </button>
             <Button
               size="sm"
-              onClick={() => navigate("/create")}
+              onClick={() => navigate("/onboarding")}
               className="h-10 rounded-full bg-primary px-5 text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
             >
               <WhatsAppIcon />
@@ -125,7 +125,7 @@ export function Header({ onAuthClick }) {
               <Button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onAuthClick?.();
+                  navigate("/onboarding");
                 }}
                 className="h-11 w-full rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90"
               >

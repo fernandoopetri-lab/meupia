@@ -170,7 +170,7 @@ export default function LandingPage({ onAuthClick }) {
             transition={{ delay: 0.1 }}
             className="text-3.5xl lg:text-5xl font-bold tracking-tight text-white mb-4 font-sans"
           >
-            Escolha a sua jornada financeira
+            Clique na opção que mais se identifica com você
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 15 }}

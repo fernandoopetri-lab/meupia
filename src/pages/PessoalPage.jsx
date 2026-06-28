@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageCircle, DollarSign } from 'lucide-react';
 import { Header } from '@/components/landing/header';
@@ -26,6 +27,7 @@ const floatingDecorations = [
 ];
 
 const PessoalPage = ({ onAuthClick }) => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <Helmet>
@@ -76,7 +78,7 @@ const PessoalPage = ({ onAuthClick }) => {
         <AlertsSection />
         <ComparisonSection />
         <TestimonialsSection />
-        <CTASection onAuthClick={onAuthClick} />
+        <CTASection onAuthClick={() => navigate("/onboarding")} />
         <div id="faq">
           <FAQSection />
         </div>

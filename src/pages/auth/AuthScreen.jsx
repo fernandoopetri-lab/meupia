@@ -12,11 +12,11 @@ import { checkCpfExists } from '@/utils/cpfValidation';
 import { createDefaultUserData } from '@/utils/createDefaultUserData';
 import Logo from '@/components/Logo';
 
-const AuthScreen = ({ onAuthSuccess }) => {
+const AuthScreen = ({ onAuthSuccess, defaultIsLogin = true }) => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(defaultIsLogin);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const timeoutRef = useRef(null);

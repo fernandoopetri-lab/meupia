@@ -14,6 +14,7 @@ import PageRural from '@/pages/PageRural';
 import PessoalPage from '@/pages/PessoalPage';
 import SignUpPage from '@/pages/auth/SignUpPage';
 import LoginPage from '@/pages/auth/LoginPage';
+import OnboardingPage from '@/pages/OnboardingPage';
 import CheckoutPage from '@/components/CheckoutPage';
 import WebhooksPage from '@/components/WebhooksPage';
 import SessionTimeoutModal from '@/components/SessionTimeoutModal';
@@ -220,6 +221,7 @@ function AppContent() {
           <Route path="/page-rural" element={<PageRural onAuthClick={() => user ? window.location.href = '/' : setShowAuth(true)} />} />
             <Route path="/rural" element={<PageRural onAuthClick={() => user ? window.location.href = '/' : setShowAuth(true)} />} />
             <Route path="/pessoal" element={<PessoalPage onAuthClick={() => user ? window.location.href = '/' : setShowAuth(true)} />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

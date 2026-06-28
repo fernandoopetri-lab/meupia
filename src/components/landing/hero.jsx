@@ -86,12 +86,11 @@ export function Hero({ onAuthClick }) {
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2 h-14 px-8 text-base font-semibold shadow-lg shadow-primary/25"
-                onClick={() => navigate("/create")}
+                onClick={() => navigate("/onboarding")}
               >
                 <MessageCircle className="w-5 h-5" />
                 Começar agora no WhatsApp
                 <ArrowRight className="w-4 h-4" />
-                
               </Button>
               
               <Button
